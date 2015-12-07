@@ -46,6 +46,7 @@ func TestScanTokens(t *testing.T) {
 		{`""`, []token{{tokenLiteral, ""}}},
 		{`"a"`, []token{{tokenLiteral, "a"}}},
 		{`"a"`, []token{{tokenLiteral, "a"}}},
+		{`"hei"@nb-No `, []token{{tokenLiteral, "hei"}, {tokenLangTag, "nb-No"}}},
 		{`"\""`, []token{{tokenLiteral, "\""}}},
 		{`"\t\r\n\f\b\\\u00b7\u00B7\U000000b7\U000000B7"`, []token{{tokenLiteral, "\t\r\n\f\b\\····"}}},
 		{`"abc\tæøå"`, []token{{tokenLiteral, "abc\tæøå"}}},
@@ -91,6 +92,7 @@ func TestScanErrors(t *testing.T) {
 		{`"hei`, "unterminated Literal", `"hei`},
 		{`abc <a>`, "unexpected token", "abc"},
 		{`^a b`, "unexpected token", "^a"},
+		{`@ <a>`, "invalid language tag", ""},
 	}
 
 	for _, test := range tests {

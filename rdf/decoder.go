@@ -106,6 +106,8 @@ func (d *Decoder) parseObject() error {
 			d.keepPred = true
 			d.tr.Obj = NewLiteral(tok.Text)
 			return nil
+		case tokenLangTag:
+			d.tr.Obj = NewLangLiteral(tok.Text, next.Text)
 		default:
 			return fmt.Errorf("%d:%d expected datatype, dot, semicolon or comma, got %q (%s)",
 				d.scanner.Row, d.scanner.Col, tok.Text, tok.Type)
@@ -121,6 +123,7 @@ func (d *Decoder) parseObject() error {
 		d.keepPred = false
 		d.keepPred = false
 		return nil
+		// TODO tokenComma, TokenSemicolon
 	default:
 		return fmt.Errorf("expected dot, semicolon or comma, got %v", tok.Type)
 	}

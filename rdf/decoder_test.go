@@ -14,6 +14,7 @@ func TestDecode(t *testing.T) {
 		{"", nil},
 		{"<s> <p> <o> .", []Triple{Triple{NewURI("s"), NewURI("p"), NewURI("o")}}},
 		{`<s> <p> "abc" .`, []Triple{Triple{NewURI("s"), NewURI("p"), NewLiteral("abc")}}},
+		{`<s> <p> "hi"@en .`, []Triple{Triple{NewURI("s"), NewURI("p"), NewLangLiteral("hi", "en")}}},
 		{`<s> <p> "1"^^<int> .`, []Triple{Triple{NewURI("s"), NewURI("p"), NewTypedLiteral("1", NewURI("int"))}}},
 		{`<s> <p> "x", "y" .`, []Triple{
 			Triple{NewURI("s"), NewURI("p"), NewLiteral("x")},

@@ -147,6 +147,15 @@ runeSwitch:
 			addEnd = -1
 		}
 		tok = tokenLiteral
+	case '@':
+		s.ignore()
+		p := s.pos
+		s.scanUntilNextToken()
+		if p == s.pos {
+			s.Error = "invalid language tag"
+			break runeSwitch
+		}
+		tok = tokenLangTag
 	case '^':
 		if s.peek() != '^' {
 			s.Error = "unexpected token"
@@ -222,7 +231,7 @@ func (s *scanner) scanUntilNextToken() {
 	for {
 		r := s.peek()
 		switch r {
-		case '<', '"', '.', ';', ',', '\n', ' ', eof:
+		case '<', '"', '.', ';', ',', '\n', ' ', eof, utf8.RuneError:
 			return
 		default:
 			s.next()
