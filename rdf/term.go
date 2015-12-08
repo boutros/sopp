@@ -255,11 +255,10 @@ func NewLangLiteral(v string, lang string) Literal {
 	}
 }
 
-// NewTypedLiteral returns a new Literal with the given DataType. The
-// value will be stored as fmt.Sprintf("%#v", v)
-func NewTypedLiteral(v interface{}, dt URI) Literal {
+// NewTypedLiteral returns a new Literal with the given DataType.
+func NewTypedLiteral(v string, dt URI) Literal {
 	return Literal{
-		value:    fmt.Sprintf("%#v", v),
+		value:    v,
 		datatype: dt,
 	}
 }

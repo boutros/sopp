@@ -10,7 +10,6 @@ type Decoder struct {
 	scanner *scanner
 
 	// state
-	base     string         // base URI
 	ns       map[string]URI // prefixes
 	tr       Triple         // parsed triple to be returned
 	keepSubj bool           // keep subject in next call to Decode()
@@ -67,8 +66,13 @@ func (d *Decoder) parseURI() (uri URI, err error) {
 	switch tok.Type {
 	case tokenURI:
 		uri = NewURI(tok.Text)
+	case tokenEOL:
+		return d.parseURI()
 	case tokenEOF:
 		err = io.EOF
+	default:
+		err = fmt.Errorf("%d:%d expected URI, got %q (%s)",
+			d.scanner.Row, d.scanner.Col, tok.Text, tok.Type)
 	}
 	return uri, err
 }
@@ -84,15 +88,14 @@ func (d *Decoder) parseObject() error {
 		switch next.Type {
 		case tokenDot:
 			d.tr.Obj = NewLiteral(tok.Text)
-			d.keepPred = false
+			d.keepSubj = false
 			d.keepPred = false
 			return nil
 		case tokenTypeMarker:
 			next = d.scanner.Scan()
 			switch next.Type {
 			case tokenURI:
-				d.tr.Obj = NewTypedLiteral(tok.Text, NewURI(next.Text))
-				return nil
+				d.tr.Obj = Literal{value: tok.Text, datatype: NewURI(next.Text)}
 			case tokenEOF:
 				return io.EOF
 			}
@@ -109,29 +112,43 @@ func (d *Decoder) parseObject() error {
 		case tokenLangTag:
 			d.tr.Obj = NewLangLiteral(tok.Text, next.Text)
 		default:
-			return fmt.Errorf("%d:%d expected datatype, dot, semicolon or comma, got %q (%s)",
+			return fmt.Errorf("%d:%d expected Datatype|Dot|Semicolon|Comma, got %q (%s)",
 				d.scanner.Row, d.scanner.Col, tok.Text, tok.Type)
 		}
 	case tokenEOF:
 		return io.EOF
 	}
 
+	// We got a full triple, check for termination
 	tok = d.scanner.Scan()
 	switch tok.Type {
 	case tokenDot:
-		// we got a full valid triple
 		d.keepPred = false
 		d.keepPred = false
-		return nil
-		// TODO tokenComma, TokenSemicolon
+	case tokenSemicolon:
+		d.keepSubj = true
+		d.keepPred = false
+	case tokenComma:
+		d.keepSubj = true
+		d.keepPred = true
+	case tokenEOF:
+		return io.EOF
 	default:
-		return fmt.Errorf("expected dot, semicolon or comma, got %v", tok.Type)
+		return fmt.Errorf("expected Dot|Semicolon|Comma, got %v", tok.Type)
 	}
 
 	return nil
 }
 
-// DecodeAll parses the entire stream and returns the triples as a Graph.
-func (d *Decoder) DecodeAll() (*Graph, error) {
-	return NewGraph(), nil
+// DecodeGraph parses the entire stream and returns the triples as a Graph.
+func (d *Decoder) DecodeGraph() (*Graph, error) {
+	g := NewGraph()
+	for tr, err := d.Decode(); err != io.EOF; tr, err = d.Decode() {
+		if err != nil {
+			fmt.Println(err)
+			panic("TODO DecodeGraph with errors")
+		}
+		g.Insert(tr)
+	}
+	return g, nil
 }

@@ -46,6 +46,7 @@ func TestScanTokens(t *testing.T) {
 		{`""`, []token{{tokenLiteral, ""}}},
 		{`"a"`, []token{{tokenLiteral, "a"}}},
 		{`"a"`, []token{{tokenLiteral, "a"}}},
+		{`"100"^^<int>`, []token{{tokenLiteral, "100"}, {tokenTypeMarker, ""}, {tokenURI, "int"}}},
 		{`"hei"@nb-No `, []token{{tokenLiteral, "hei"}, {tokenLangTag, "nb-No"}}},
 		{`"\""`, []token{{tokenLiteral, "\""}}},
 		{`"\t\r\n\f\b\\\u00b7\u00B7\U000000b7\U000000B7"`, []token{{tokenLiteral, "\t\r\n\f\b\\····"}}},

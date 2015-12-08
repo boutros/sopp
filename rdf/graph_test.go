@@ -192,7 +192,6 @@ func TestGraphNTriples(t *testing.T) {
 }
 
 func TestGraphTurtle(t *testing.T) {
-	t.Skip()
 	g := NewGraph()
 	trs := []Triple{
 		{NewURI("s"), NewURI("p"), NewLangLiteral("a", "en")},

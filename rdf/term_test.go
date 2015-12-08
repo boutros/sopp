@@ -1,6 +1,7 @@
 package rdf
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 	"time"
@@ -121,11 +122,11 @@ func TestNewLangLiteral(t *testing.T) {
 func TestNewTypedLiteral(t *testing.T) {
 	v := struct{ x, y int }{1, 2}
 	dt := NewURI("http://example.org/class/Point")
-	l := NewTypedLiteral(v, dt)
+	l := NewTypedLiteral(fmt.Sprintf("Point{x:%d, y:%d}", v.x, v.y), dt)
 	if l.DataType() != dt {
 		t.Errorf("NewTypeLiteral(%v, %v).DataType() => %s ; want %s ", v, dt, l.DataType(), dt)
 	}
-	want := `struct { x int; y int }{x:1, y:2}`
+	want := `Point{x:1, y:2}`
 	if l.Value() != want {
 		t.Errorf("NewTypedLiteral(%v, %v).Value() => %s ; want %s ", v, dt, l.Value(), want)
 	}
