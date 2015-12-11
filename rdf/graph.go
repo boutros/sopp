@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 )
 
 // Format represents a RDF graph serialization format
@@ -252,21 +253,56 @@ func (g *Graph) Serialize(f Format) string {
 	return b.String()
 }
 
-/*
+func (g *Graph) dot(base string, center URI) string {
+	var b bytes.Buffer
+	b.WriteString("digraph G {\n\tnode [shape=plaintext];\n\n")
 
-type PrefixMap struct {
-	p2uri map[string]URI
-	uri2p map[string]URI
-	//base  URI
+	type link struct {
+		from, to URI
+		label    string
+	}
+
+	var links []link
+
+	for node, props := range g.nodes {
+		fmt.Fprintf(&b, "\t%q[label=<<TABLE BORDER='0' CELLBORDER='1' CELLSPACING='0' CELLPADDING='5'>\n", node)
+		if node == center {
+			b.WriteString("\t<TR><TD BGCOLOR='#a0ffa0' COLSPAN='2'><FONT POINT-SIZE='12' FACE='monospace'>&lt;")
+			b.WriteString(strings.TrimPrefix(node.String(), base))
+			b.WriteString("&gt;</FONT></TD></TR>\n")
+		} else {
+			b.WriteString("\t<TR><TD HREF='")
+			b.WriteString(node.String() + ".svg")
+			b.WriteString("' BGCOLOR='#e0e0e0' COLSPAN='2'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;")
+			b.WriteString(strings.TrimPrefix(node.String(), base))
+			b.WriteString("&gt;</FONT></TD></TR>\n")
+		}
+		for pred, terms := range props {
+			_, shortPred := split(pred.String())
+			for _, term := range terms {
+				switch t := term.(type) {
+				case URI:
+					links = append(links, link{node, t, shortPred})
+				case Literal:
+					b.WriteString("\t<TR>\n\t\t<TD ALIGN='RIGHT'><B>")
+					b.WriteString(shortPred)
+					b.WriteString("</B> </TD>\n\t\t<TD ALIGN='LEFT'>")
+					b.WriteString(t.String())
+					b.WriteString("</TD>\n\t</TR>\n")
+				}
+			}
+		}
+		b.WriteString("\t</TABLE>>];\n\n")
+	}
+
+	for _, l := range links {
+		fmt.Fprintf(&b, "\t%q->%q[label=%q];\n", l.from, l.to, l.label)
+	}
+	b.WriteString("}")
+	return b.String()
 }
 
-//func (p *PrefixMap) SetBase(u URI)            {}
-func (p *PrefixMap) Set(prefix string, u URI) {}
-func (p *PrefixMap) Resolve(s string) URI     {}
-func (p *PrefixAmp) Shrink(u URI) string      {}
-
-func (g *Graph) Update(q UpdateQuery)
-func (g *Graph) Construct(q ConstructQuery) => *Graph
+/*
 
 type UpdateQuery struct {
 	insert    []Pattern

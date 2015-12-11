@@ -218,3 +218,83 @@ func TestGraphTurtle(t *testing.T) {
 			trs, g.Serialize(Turtle), wantGraph.Serialize(Turtle))
 	}
 }
+
+func TestGraphDot(t *testing.T) {
+	t.Skip()
+	g := NewGraph()
+	trs := []Triple{
+		{NewURI("http://example.org/person/2"), NewURI("http://example.org/ontology#name"), NewLiteral("Kurt Vonnegut")},
+		{NewURI("http://example.org/person/2"), NewURI("http://example.org/ontology#born"), NewLiteral(1922)},
+		{NewURI("http://example.org/person/2"), NewURI("http://example.org/ontology#dead"), NewLiteral(2007)},
+		{NewURI("http://example.org/person/2"), NewURI("http://example.org/ontology#birthplace"), NewURI("http://example.org/place/1")},
+		{NewURI("http://example.org/place/1"), NewURI("http://example.org/ontology#name"), NewLiteral("Indianapolis")},
+		{NewURI("http://example.org/work/1"), NewURI("http://example.org/ontology#written_by"), NewURI("http://example.org/person/2")},
+		{NewURI("http://example.org/work/2"), NewURI("http://example.org/ontology#written_by"), NewURI("http://example.org/person/2")},
+		{NewURI("http://example.org/work/1"), NewURI("http://example.org/ontology#title"), NewLiteral("Cat's cradle")},
+		{NewURI("http://example.org/work/1"), NewURI("http://example.org/ontology#first_published"), NewLiteral(1963)},
+		{NewURI("http://example.org/work/2"), NewURI("http://example.org/ontology#title"), NewLiteral("Galápagos")},
+		{NewURI("http://example.org/work/2"), NewURI("http://example.org/ontology#first_published"), NewLiteral(1985)},
+	}
+	g.Insert(trs...)
+
+	want := `digraph G {
+	node [shape=plaintext];
+
+	"http://example.org/person/2"[label=<<TABLE BORDER='0' CELLBORDER='1' CELLSPACING='0' CELLPADDING='5'>
+	<TR><TD BGCOLOR='#a0ffa0' COLSPAN='2'><FONT POINT-SIZE='12' FACE='monospace'>&lt;person/2&gt;</FONT></TD></TR>
+	<TR>
+		<TD ALIGN='RIGHT'><B>name</B> </TD>
+		<TD ALIGN='LEFT'>Kurt Vonnegut</TD>
+	</TR>
+	<TR>
+		<TD ALIGN='RIGHT'><B>born</B> </TD>
+		<TD ALIGN='LEFT'>1922</TD>
+	</TR>
+	<TR>
+		<TD ALIGN='RIGHT'><B>dead</B> </TD>
+		<TD ALIGN='LEFT'>2007</TD>
+	</TR>
+	</TABLE>>];
+
+	"http://example.org/place/1"[label=<<TABLE BORDER='0' CELLBORDER='1' CELLSPACING='0' CELLPADDING='5'>
+	<TR><TD HREF='http://example.org/place/1.svg' BGCOLOR='#e0e0e0' COLSPAN='2'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;place/1&gt;</FONT></TD></TR>
+	<TR>
+		<TD ALIGN='RIGHT'><B>name</B> </TD>
+		<TD ALIGN='LEFT'>Indianapolis</TD>
+	</TR>
+	</TABLE>>];
+
+	"http://example.org/work/1"[label=<<TABLE BORDER='0' CELLBORDER='1' CELLSPACING='0' CELLPADDING='5'>
+	<TR><TD HREF='http://example.org/work/1.svg' BGCOLOR='#e0e0e0' COLSPAN='2'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;work/1&gt;</FONT></TD></TR>
+	<TR>
+		<TD ALIGN='RIGHT'><B>first_published</B> </TD>
+		<TD ALIGN='LEFT'>1963</TD>
+	</TR>
+	<TR>
+		<TD ALIGN='RIGHT'><B>title</B> </TD>
+		<TD ALIGN='LEFT'>Cat's cradle</TD>
+	</TR>
+	</TABLE>>];
+
+	"http://example.org/work/2"[label=<<TABLE BORDER='0' CELLBORDER='1' CELLSPACING='0' CELLPADDING='5'>
+	<TR><TD HREF='http://example.org/work/2.svg' BGCOLOR='#e0e0e0' COLSPAN='2'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;work/2&gt;</FONT></TD></TR>
+	<TR>
+		<TD ALIGN='RIGHT'><B>title</B> </TD>
+		<TD ALIGN='LEFT'>Galápagos</TD>
+	</TR>
+	<TR>
+		<TD ALIGN='RIGHT'><B>first_published</B> </TD>
+		<TD ALIGN='LEFT'>1985</TD>
+	</TR>
+	</TABLE>>];
+
+	"http://example.org/person/2"->"http://example.org/place/1"[label="birthplace"];
+	"http://example.org/work/1"->"http://example.org/person/2"[label="written_by"];
+	"http://example.org/work/2"->"http://example.org/person/2"[label="written_by"];
+}`
+	// TODO split lines, sort and compare
+	if got := g.dot("http://example.org/", NewURI("http://example.org/person/2")); got != want {
+		t.Errorf("got:\n%s\nwant:\n%v", got, want)
+	}
+
+}
