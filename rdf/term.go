@@ -265,8 +265,8 @@ func NewTypedLiteral(v string, dt URI) Literal {
 
 // Term represents a RDF Term: the combination of URI and Literal.
 type Term interface {
+	// String returns a string represenation of a Term
 	String() string
-	//Bytes() []byte
 
 	// method is not exported to hinder interface implementations outside this package:
 	validAsTerm()
