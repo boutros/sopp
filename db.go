@@ -146,7 +146,7 @@ func (db *DB) Insert(tr rdf.Triple) error {
 	return err
 }
 
-// HasTriple checks if the given Triple is stored.
+// Has checks if the given Triple is stored.
 func (db *DB) Has(tr rdf.Triple) (exists bool, err error) {
 	err = db.kv.View(func(tx *bolt.Tx) error {
 		sID, err := db.getID(tx, tr.Subj)
@@ -155,6 +155,7 @@ func (db *DB) Has(tr rdf.Triple) (exists bool, err error) {
 		} else if err != nil {
 			return err
 		}
+		// TODO get pID from cache, and move to top before sID
 		pID, err := db.getID(tx, tr.Pred)
 		if err == ErrNotFound {
 			return nil
@@ -189,6 +190,56 @@ func (db *DB) Has(tr rdf.Triple) (exists bool, err error) {
 		return nil
 	})
 	return exists, err
+}
+
+func (db *DB) forEach(fn func(rdf.Triple) error) error {
+	return db.kv.View(func(tx *bolt.Tx) error {
+
+		bkt := tx.Bucket(bucketSPO)
+		// iterate over each each triple in SPO index
+		if err := bkt.ForEach(func(k, v []byte) error {
+			if len(k) != 8 {
+				return nil
+			}
+			sID := btou32(k[:4])
+			pID := btou32(k[4:])
+
+			var tr rdf.Triple
+			var err error
+			var term rdf.Term
+
+			if term, err = db.getTerm(tx, sID); err != nil {
+				return err
+			}
+			tr.Subj = term.(rdf.URI)
+			if term, err = db.getTerm(tx, pID); err != nil {
+				return err
+			}
+			tr.Pred = term.(rdf.URI)
+
+			bitmap := roaring.NewRoaringBitmap()
+			if _, err := bitmap.ReadFrom(bytes.NewReader(v)); err != nil {
+				return err
+			}
+
+			// Iterate over each term in object bitmap
+			i := bitmap.Iterator()
+			for i.HasNext() {
+				if tr.Obj, err = db.getTerm(tx, i.Next()); err != nil {
+					return err
+				}
+				if err := fn(tr); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (db *DB) addTerm(tx *bolt.Tx, term rdf.Term) (id uint32, err error) {
@@ -295,6 +346,16 @@ func (db *DB) getIDb(tx *bolt.Tx, term []byte) (id uint32, err error) {
 		id = btou32(b)
 	}
 	return id, err
+}
+
+// getTerm returns the term for a given ID.
+func (db *DB) getTerm(tx *bolt.Tx, id uint32) (rdf.Term, error) {
+	bkt := tx.Bucket(bucketTerms)
+	b := bkt.Get(u32tob(id))
+	if b == nil {
+		return nil, ErrNotFound
+	}
+	return db.decode(b)
 }
 
 func (db *DB) encode(t rdf.Term) []byte {

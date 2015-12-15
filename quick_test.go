@@ -93,7 +93,7 @@ func (t testdata) Generate(rand *rand.Rand, size int) reflect.Value {
 				// 75% object is a Literal
 				tr.Obj = randLiteral()
 			}
-			graph = append(graph, testdataitem(tr))
+			graph = append(graph, tr)
 		}
 
 	}
