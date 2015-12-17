@@ -146,6 +146,32 @@ func (db *DB) Insert(tr rdf.Triple) error {
 	return err
 }
 
+// Delete removes the given Triple from the indices. It also removes
+// any Term unique to that Triple from the store.
+// It return ErrNotFound if the Triple is not stored
+func (db *DB) Delete(tr rdf.Triple) error {
+	err := db.kv.Update(func(tx *bolt.Tx) error {
+		sID, err := db.getID(tx, tr.Subj)
+		if err != nil {
+			return err
+		}
+
+		// TODO get pID from cache
+		pID, err := db.getID(tx, tr.Pred)
+		if err != nil {
+			return err
+		}
+
+		oID, err := db.getID(tx, tr.Obj)
+		if err != nil {
+			return err
+		}
+
+		return db.removeTriple(tx, sID, pID, oID)
+	})
+	return err
+}
+
 // Has checks if the given Triple is stored.
 func (db *DB) Has(tr rdf.Triple) (exists bool, err error) {
 	err = db.kv.View(func(tx *bolt.Tx) error {
@@ -323,6 +349,68 @@ func (db *DB) storeTriple(tx *bolt.Tx, s, p, o uint32) error {
 	//atomic.AddInt64(&db.numTr, 1)
 
 	return nil
+}
+
+// removeTriple removes a triple from the indices. If the triple
+// contains any terms unique to that triple, they will also be removed.
+func (db *DB) removeTriple(tx *bolt.Tx, s, p, o uint32) error {
+	// TODO think about what to do if present in one index but
+	// not in another: maybe panic? Cause It's a bug that should be fixed.
+
+	indices := []struct {
+		k1 uint32
+		k2 uint32
+		v  uint32
+		bk []byte
+	}{
+		{s, p, o, bucketSPO},
+		{o, s, p, bucketOSP},
+		{p, o, s, bucketPOS},
+	}
+
+	key := make([]byte, 8)
+	for _, i := range indices {
+		bkt := tx.Bucket(i.bk)
+		copy(key, u32tob(i.k1))
+		copy(key[4:], u32tob(i.k2))
+
+		bitmap := roaring.NewRoaringBitmap()
+
+		bo := bkt.Get(key)
+		if bo == nil {
+			return ErrNotFound
+		}
+		_, err := bitmap.ReadFrom(bytes.NewReader(bo))
+		if err != nil {
+			return err
+		}
+		hasTriple := bitmap.CheckedRemove(i.v)
+		if !hasTriple {
+			return ErrNotFound
+		}
+		// Remove from index if bitmap is empty
+		if bitmap.GetCardinality() == 0 {
+			err = bkt.Delete(key)
+			if err != nil {
+				return err
+			}
+		} else {
+			var b bytes.Buffer
+			_, err = bitmap.WriteTo(&b)
+			if err != nil {
+				return err
+			}
+			err = bkt.Put(key, b.Bytes())
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	//atomic.AddInt64(&db.numTr, -1)
+
+	return nil
+	//return db.removeOrphanedTerms(tx, s, p, o)
 }
 
 func (db *DB) getID(tx *bolt.Tx, term rdf.Term) (id uint32, err error) {

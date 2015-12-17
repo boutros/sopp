@@ -51,7 +51,7 @@ func (t testdata) Len() int           { return len(t) }
 func (t testdata) Less(i, j int) bool { return t[i].String() < t[j].String() }
 func (t testdata) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 
-func (t testdata) Generate(rand *rand.Rand, size int) reflect.Value {
+func (testdata) Generate(rand *rand.Rand, size int) reflect.Value {
 
 	// Generate a random graph
 	// based on qmaxnodes = max subjects

@@ -41,6 +41,17 @@ func TestInsert_Quick(t *testing.T) {
 		db := newTestDB()
 		defer db.Close()
 
+		// Remove any duplicates from the testdata set
+		sort.Sort(items)
+		c := 0
+		for i, item := range items {
+			if i > 0 && item == items[i-1] {
+				items[i] = items[c]
+				c++
+			}
+		}
+		items = items[c:]
+
 		for _, item := range items {
 			// Verify that triple is not present in graph
 			// (Technically it is possible that the same triple was generated twice, but
@@ -58,6 +69,60 @@ func TestInsert_Quick(t *testing.T) {
 
 			if err := db.Insert(item.Triple); err != nil {
 				t.Logf("DB.Insert(%v) failed: %v", item.Triple, err)
+				t.FailNow()
+			}
+
+			// Verify triple is now present in graph
+			present, err = db.Has(item.Triple)
+			if !present {
+				t.Logf("DB.Has(%v) => false after insert", item.Triple)
+				t.FailNow()
+			}
+			if err != nil {
+				t.Logf("DB.Has(%v) failed: ", item.Triple, err)
+				t.FailNow()
+			}
+		}
+
+		print(".")
+		return true
+	}
+	if err := quick.Check(f, qconfig()); err != nil {
+		t.Error(err)
+	}
+}
+
+// Verify that triples can be deleted and reported as not stored.
+func TestDelete_Quick(t *testing.T) {
+	f := func(items testdata) bool {
+		db := newTestDB()
+		defer db.Close()
+
+		for _, item := range items {
+			if err := db.Insert(item.Triple); err != nil {
+				t.Logf("DB.Insert(%v) failed: %v", item.Triple, err)
+				t.FailNow()
+			}
+
+			if err := db.Delete(item.Triple); err != nil {
+				t.Logf("DB.Delete(%v) failed: %v", item.Triple, err)
+				t.FailNow()
+			}
+
+			// Verify triple is not present in graph
+			present, err := db.Has(item.Triple)
+			if present {
+				t.Logf("DB.Has(%v) => true before insert", item.Triple)
+				t.FailNow()
+			}
+			if err != nil {
+				t.Logf("DB.Has(%v) failed: ", item.Triple, err)
+				t.FailNow()
+			}
+
+			// Verify that triple can't be deleted agin
+			if err := db.Delete(item.Triple); err != ErrNotFound {
+				t.Logf("DB.Delete(%v) => %v; want ErrNotFound", item.Triple, err)
 				t.FailNow()
 			}
 		}
