@@ -41,12 +41,12 @@ func TestInsert_Quick(t *testing.T) {
 		db := newTestDB()
 		defer db.Close()
 
-		// Remove any duplicates from the testdata set
+		// Remove any duplicates from the testdata
 		sort.Sort(items)
 		c := 0
 		for i, item := range items {
 			if i > 0 && item == items[i-1] {
-				items[i] = items[c]
+				items[i] = items[c] // don't need to preserve order
 				c++
 			}
 		}
@@ -112,7 +112,7 @@ func TestDelete_Quick(t *testing.T) {
 			// Verify triple is not present in graph
 			present, err := db.Has(item.Triple)
 			if present {
-				t.Logf("DB.Has(%v) => true before insert", item.Triple)
+				t.Logf("DB.Has(%v) => true after delete", item.Triple)
 				t.FailNow()
 			}
 			if err != nil {
@@ -125,8 +125,19 @@ func TestDelete_Quick(t *testing.T) {
 				t.Logf("DB.Delete(%v) => %v; want ErrNotFound", item.Triple, err)
 				t.FailNow()
 			}
+
 		}
 
+		// Verify that all Terms are now deleted (by removeOrphanedTerms)
+		stats, err := db.Stats()
+		if err != nil {
+			t.Logf("DB.Stats() failed: %v", err)
+			t.FailNow()
+		}
+		if stats.NumTerms != 0 {
+			t.Logf("Terms in DB after deleting all triples: %d (removeOrhpanTerms fail)", stats.NumTerms)
+			t.FailNow()
+		}
 		print(".")
 		return true
 	}
@@ -141,7 +152,16 @@ func TestEncodeDecode_Quick(t *testing.T) {
 		db := newTestDB()
 		defer db.Close()
 
+		// Remove any duplicates from the testdata
 		sort.Sort(items)
+		c := 0
+		for i, item := range items {
+			if i > 0 && item == items[i-1] {
+				// we want to preserve order
+				copy(items[i-1:], items[i:])
+			}
+		}
+		items = items[:c]
 
 		for _, item := range items {
 			if err := db.Insert(item.Triple); err != nil {
@@ -161,14 +181,14 @@ func TestEncodeDecode_Quick(t *testing.T) {
 			t.FailNow()
 		}
 
-		sort.Sort(result)
-
 		if len(items) != len(result) {
 			t.Logf("inserted %d triples, got %d back from DB", len(items), len(result))
 			t.FailNow()
 		}
+
+		sort.Sort(result)
 		for i, item := range items {
-			if result[i].Triple != item.Triple {
+			if item.Triple != result[i].Triple {
 				t.Logf("got %v; wanted %v ", result[i].Triple, item.Triple)
 				t.FailNow()
 			}

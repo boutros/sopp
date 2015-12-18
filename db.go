@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/boltdb/bolt"
@@ -65,6 +66,34 @@ type DB struct {
 	// The number of predicates used in a RDF is usually quite low, so we
 	// maintain a cache of those in a bi-directional map
 	//pred bimap.URI2uint32
+}
+
+// Stats holds some statistics of the triple store.
+type Stats struct {
+	NumTerms int
+	//NumTriples    int
+	File        string
+	SizeInBytes int
+}
+
+// Stats return statistics about the triple store.
+func (db *DB) Stats() (Stats, error) {
+	st := Stats{}
+	if err := db.kv.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(bucketTerms)
+		st.NumTerms = bkt.Stats().KeyN
+		//st.NumTriples = int(atomic.LoadInt64(&db.numTr))
+		st.File = db.kv.Path()
+		s, err := os.Stat(st.File)
+		if err != nil {
+			return err
+		}
+		st.SizeInBytes = int(s.Size())
+		return nil
+	}); err != nil {
+		return st, err
+	}
+	return st, nil
 }
 
 // Open creates and opens a database at the given path.
@@ -374,18 +403,20 @@ func (db *DB) removeTriple(tx *bolt.Tx, s, p, o uint32) error {
 		copy(key, u32tob(i.k1))
 		copy(key[4:], u32tob(i.k2))
 
-		bitmap := roaring.NewRoaringBitmap()
-
 		bo := bkt.Get(key)
 		if bo == nil {
+			// TODO should never happen, return bug error?
 			return ErrNotFound
 		}
+
+		bitmap := roaring.NewRoaringBitmap()
 		_, err := bitmap.ReadFrom(bytes.NewReader(bo))
 		if err != nil {
 			return err
 		}
 		hasTriple := bitmap.CheckedRemove(i.v)
 		if !hasTriple {
+			// TODO should never happen, return bug error?
 			return ErrNotFound
 		}
 		// Remove from index if bitmap is empty
@@ -409,8 +440,59 @@ func (db *DB) removeTriple(tx *bolt.Tx, s, p, o uint32) error {
 
 	//atomic.AddInt64(&db.numTr, -1)
 
+	return db.removeOrphanedTerms(tx, s, p, o)
+}
+
+func (db *DB) removeTerm(tx *bolt.Tx, termID uint32) error {
+	bkt := tx.Bucket(bucketTerms)
+	term := bkt.Get(u32tob(termID))
+	if term == nil {
+		// removeTerm should never be called on a allready deleted Term
+		return errors.New("bug: removeTerm: Term does not exist")
+	}
+	err := bkt.Delete(u32tob(termID))
+	if err != nil {
+		return err
+	}
+	bkt = tx.Bucket(bucketIdxTerms)
+	err = bkt.Delete(term)
+	if err != nil {
+		return err
+	}
 	return nil
-	//return db.removeOrphanedTerms(tx, s, p, o)
+}
+
+// removeOrphanedTerms removes any of the given Terms if they are no longer
+// part of any triple.
+func (db *DB) removeOrphanedTerms(tx *bolt.Tx, s, p, o uint32) error {
+	// TODO by now we don't know whether object is a Literal or and URI.
+	// If we knew it to be a Literal, checking the OSP index would suffice.
+	for _, id := range []uint32{s, p, o} {
+		if db.notInIndex(tx, id, bucketSPO) && db.notInIndex(tx, id, bucketOSP) && db.notInIndex(tx, id, bucketPOS) {
+			err := db.removeTerm(tx, id)
+			if err != nil {
+				if err == ErrNotFound {
+					return errors.New("bug: removeOrphanedTerms removing Term allready gone")
+				} else {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func (db *DB) notInIndex(tx *bolt.Tx, id uint32, idx []byte) bool {
+	cur := tx.Bucket(idx).Cursor()
+	for k, _ := cur.Seek(u32tob(id - 1)); k != nil; k, _ = cur.Next() {
+		switch bytes.Compare(k[:4], u32tob(id)) {
+		case 0:
+			return false
+		case 1:
+			return true
+		}
+	}
+	return true
 }
 
 func (db *DB) getID(tx *bolt.Tx, term rdf.Term) (id uint32, err error) {
