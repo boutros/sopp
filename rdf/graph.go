@@ -29,7 +29,22 @@ type Triple struct {
 
 // String returns a N-Triples serialization of the Triple.
 func (tr Triple) String() string {
-	return fmt.Sprintf("<%s> <%s> %s .", tr.Subj, tr.Pred, tr.Obj)
+	switch obj := tr.Obj.(type) {
+	case URI:
+		return fmt.Sprintf("<%s> <%s> <%s> .", tr.Subj, tr.Pred, obj)
+	case Literal:
+		switch obj.DataType() {
+		case XSDstring:
+			return fmt.Sprintf("<%s> <%s> %q .", tr.Subj, tr.Pred, obj.value)
+		case RDFlangString:
+			return fmt.Sprintf("<%s> <%s> %q@%s .", tr.Subj, tr.Pred, obj.value, obj.language)
+		case XSDboolean:
+			return fmt.Sprintf("<%s> <%s> %s .", tr.Subj, tr.Pred, obj.value)
+		default:
+			return fmt.Sprintf("<%s> <%s> %q^^<%s> .", tr.Subj, tr.Pred, obj.value, obj.datatype)
+		}
+	}
+	panic("unreachable")
 }
 
 // Graph represents an RDF graph.
