@@ -467,8 +467,9 @@ func (db *DB) removeTerm(tx *bolt.Tx, termID uint32) error {
 func (db *DB) removeOrphanedTerms(tx *bolt.Tx, s, p, o uint32) error {
 	// TODO by now we don't know whether object is a Literal or and URI.
 	// If we knew it to be a Literal, checking the OSP index would suffice.
-	for _, id := range []uint32{s, p, o} {
-		if db.notInIndex(tx, id, bucketSPO) && db.notInIndex(tx, id, bucketOSP) && db.notInIndex(tx, id, bucketPOS) {
+
+	for _, id := range unique(s, p, o) {
+		if notInIndex(tx, id, bucketSPO) && notInIndex(tx, id, bucketOSP) && notInIndex(tx, id, bucketPOS) {
 			err := db.removeTerm(tx, id)
 			if err != nil {
 				if err == ErrNotFound {
@@ -482,7 +483,21 @@ func (db *DB) removeOrphanedTerms(tx *bolt.Tx, s, p, o uint32) error {
 	return nil
 }
 
-func (db *DB) notInIndex(tx *bolt.Tx, id uint32, idx []byte) bool {
+// unique removes any duplicates of the s,p,o IDs.
+func unique(s, p, o uint32) []uint32 {
+	// TODO revise this function and its usage
+	res := make([]uint32, 0, 3)
+	res = append(res, s)
+	if p != s {
+		res = append(res, p)
+	}
+	if o != s && o != p {
+		res = append(res, o)
+	}
+	return res
+}
+
+func notInIndex(tx *bolt.Tx, id uint32, idx []byte) bool {
 	cur := tx.Bucket(idx).Cursor()
 	for k, _ := cur.Seek(u32tob(id - 1)); k != nil; k, _ = cur.Next() {
 		switch bytes.Compare(k[:4], u32tob(id)) {
