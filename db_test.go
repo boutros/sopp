@@ -201,3 +201,44 @@ func TestEncodeDecode_Quick(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// Verify that Describe returns the same graph as rdf rdf.Graph reference implementation.
+func TestDescribe_Quick(t *testing.T) {
+	f := func(items testdata) bool {
+		db := newTestDB()
+		defer db.Close()
+
+		// test against in-memory reference implementation
+		ref := rdf.NewGraph()
+
+		for _, item := range items {
+			if err := db.Insert(item.Triple); err != nil {
+				t.Logf("DB.Insert(%v) failed: %v", item.Triple, err)
+				t.FailNow()
+			}
+			ref.Insert(item.Triple)
+		}
+
+		for _, item := range items {
+			want := ref.Describe(item.Triple.Subj)
+
+			got, err := db.Describe(item.Triple.Subj)
+			if err != nil {
+				t.Logf("DB.Describe(%v) failed: %v", err)
+				t.FailNow()
+			}
+
+			if !got.Eq(want) {
+				t.Logf("DB.Describe(%v) =>\n%s\nwant:\n%s",
+					item.Triple.Subj, got.Serialize(rdf.Turtle), want.Serialize(rdf.Turtle))
+				t.FailNow()
+			}
+		}
+
+		print(".")
+		return true
+	}
+	if err := quick.Check(f, qconfig()); err != nil {
+		t.Error(err)
+	}
+}

@@ -298,3 +298,37 @@ func TestGraphDot(t *testing.T) {
 	}
 
 }
+
+func TestDescribe(t *testing.T) {
+	input := `
+<s1> <p> "a" ;
+     <p2> "b" ;
+     <p3> <s2> .
+     <p4> "x", "y" .
+<s3> <p5> <s1> ;
+     <p> "zz" .
+<s2> <p> "xx" .`
+
+	want := `
+<s1> <p> "a" ;
+     <p2> "b" ;
+     <p3> <s2> .
+     <p4> "x", "y" .
+<s3> <p5> <s1> .`
+
+	dec := NewDecoder(bytes.NewBufferString(input))
+	g, err := dec.DecodeGraph()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dec = NewDecoder(bytes.NewBufferString(want))
+	wantG, err := dec.DecodeGraph()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := g.Describe(NewURI("s1"))
+
+	if !got.Eq(wantG) {
+		t.Errorf("Describe(<s1>) => \n%s\nwant:\n%s", got.Serialize(Turtle), wantG.Serialize(Turtle))
+	}
+}

@@ -268,6 +268,22 @@ func (g *Graph) Serialize(f Format) string {
 	return b.String()
 }
 
+// Describe returns a graph with all the triples where the given
+// node is either subject or object.
+func (g *Graph) Describe(node URI) *Graph {
+	res := NewGraph()
+	for subj, props := range g.nodes {
+		for pred, terms := range props {
+			for _, term := range terms {
+				if subj == node || term == node {
+					res.Insert(Triple{Subj: subj, Pred: pred, Obj: term})
+				}
+			}
+		}
+	}
+	return res
+}
+
 func (g *Graph) dot(base string, center URI) string {
 	var b bytes.Buffer
 	b.WriteString("digraph G {\n\tnode [shape=plaintext];\n\n")

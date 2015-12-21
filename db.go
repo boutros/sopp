@@ -247,6 +247,106 @@ func (db *DB) Has(tr rdf.Triple) (exists bool, err error) {
 	return exists, err
 }
 
+// Describe returns a graph with all the triples where the given node
+// is either subject or object
+func (db *DB) Describe(node rdf.URI) (*rdf.Graph, error) {
+	g := rdf.NewGraph()
+	err := db.kv.View(func(tx *bolt.Tx) error {
+		bkt := tx.Bucket(bucketIdxTerms)
+		bt := db.encode(node)
+		bs := bkt.Get(bt)
+		if bs == nil {
+			return nil
+		}
+		// seek in SPO index:
+		// WHERE { <node> ?p ?o }
+		sid := btou32(bs)
+		cur := tx.Bucket(bucketSPO).Cursor()
+	outerSPO:
+		for k, v := cur.Seek(u32tob(sid - 1)); k != nil; k, v = cur.Next() {
+			switch bytes.Compare(k[:4], bs) {
+			case 0:
+				bkt = tx.Bucket(bucketTerms)
+				b := bkt.Get(k[4:])
+				if b == nil {
+					return errors.New("bug: term ID in index, but not stored")
+				}
+
+				// TODO get pred from cache
+				pred, err := db.decode(b)
+				if err != nil {
+					return err
+				}
+				bitmap := roaring.NewRoaringBitmap()
+				_, err = bitmap.ReadFrom(bytes.NewReader(v))
+				if err != nil {
+					return err
+				}
+				it := bitmap.Iterator()
+				for it.HasNext() {
+					o := it.Next()
+					b = bkt.Get(u32tob(o))
+					if b == nil {
+						return errors.New("bug: term ID in index, but not stored")
+					}
+
+					obj, err := db.decode(b)
+					if err != nil {
+						return err
+					}
+					g.Insert(rdf.Triple{Subj: node, Pred: pred.(rdf.URI), Obj: obj})
+				}
+			case 1:
+				break outerSPO
+			}
+		}
+
+		// seek in OSP index:
+		// WHERE { ?s ?p <node> }
+		cur = tx.Bucket(bucketOSP).Cursor()
+	outerOSP:
+		for k, v := cur.Seek(u32tob(sid - 1)); k != nil; k, v = cur.Next() {
+			switch bytes.Compare(k[:4], bs) {
+			case 0:
+				bkt = tx.Bucket(bucketTerms)
+				b := bkt.Get(k[4:])
+				if b == nil {
+					return errors.New("bug: term ID in index, but not stored")
+				}
+				subj, err := db.decode(b)
+				if err != nil {
+					return err
+				}
+				bitmap := roaring.NewRoaringBitmap()
+				_, err = bitmap.ReadFrom(bytes.NewReader(v))
+				if err != nil {
+					return err
+				}
+				it := bitmap.Iterator()
+				for it.HasNext() {
+					o := it.Next()
+					b = bkt.Get(u32tob(o))
+					if b == nil {
+						return errors.New("bug: term ID in index, but not stored")
+					}
+					// TODO get pred from cache
+					pred, err := db.decode(b)
+					if err != nil {
+						return err
+					}
+					g.Insert(rdf.Triple{subj.(rdf.URI), pred.(rdf.URI), node})
+				}
+			case 1:
+				break outerOSP
+			}
+		}
+
+		return nil
+	})
+
+	return g, err
+}
+
 func (db *DB) forEach(fn func(rdf.Triple) error) error {
 	return db.kv.View(func(tx *bolt.Tx) error {
 
