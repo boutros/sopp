@@ -309,7 +309,13 @@ func TestDescribe(t *testing.T) {
      <p> "zz" .
 <s2> <p> "xx" .`
 
-	want := `
+	want1 := `
+<s1> <p> "a" ;
+     <p2> "b" ;
+     <p3> <s2> .
+     <p4> "x", "y" .`
+
+	want2 := `
 <s1> <p> "a" ;
      <p2> "b" ;
      <p3> <s2> .
@@ -321,14 +327,27 @@ func TestDescribe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dec = NewDecoder(bytes.NewBufferString(want))
-	wantG, err := dec.DecodeGraph()
+	dec = NewDecoder(bytes.NewBufferString(want1))
+	wantG1, err := dec.DecodeGraph()
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := g.Describe(NewURI("s1"))
 
-	if !got.Eq(wantG) {
-		t.Errorf("Describe(<s1>) => \n%s\nwant:\n%s", got.Serialize(Turtle), wantG.Serialize(Turtle))
+	dec = NewDecoder(bytes.NewBufferString(want2))
+	wantG2, err := dec.DecodeGraph()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got := g.Describe(NewURI("s1"), false)
+
+	if !got.Eq(wantG1) {
+		t.Errorf("Describe(<s1>, false) => \n%s\nwant:\n%s", got.Serialize(Turtle), wantG1.Serialize(Turtle))
+	}
+
+	got = g.Describe(NewURI("s1"), true)
+
+	if !got.Eq(wantG2) {
+		t.Errorf("Describe(<s1>, false) => \n%s\nwant:\n%s", got.Serialize(Turtle), wantG2.Serialize(Turtle))
 	}
 }

@@ -248,8 +248,9 @@ func (db *DB) Has(tr rdf.Triple) (exists bool, err error) {
 }
 
 // Describe returns a graph with all the triples where the given node
-// is either subject or object
-func (db *DB) Describe(node rdf.URI) (*rdf.Graph, error) {
+// is subject. If asObject is true, it also includes the triples where
+// the node is object.
+func (db *DB) Describe(node rdf.URI, asObject bool) (*rdf.Graph, error) {
 	g := rdf.NewGraph()
 	err := db.kv.View(func(tx *bolt.Tx) error {
 		bkt := tx.Bucket(bucketIdxTerms)
@@ -301,6 +302,9 @@ func (db *DB) Describe(node rdf.URI) (*rdf.Graph, error) {
 			}
 		}
 
+		if !asObject {
+			return nil
+		}
 		// seek in OSP index:
 		// WHERE { ?s ?p <node> }
 		cur = tx.Bucket(bucketOSP).Cursor()

@@ -268,14 +268,15 @@ func (g *Graph) Serialize(f Format) string {
 	return b.String()
 }
 
-// Describe returns a graph with all the triples where the given
-// node is either subject or object.
-func (g *Graph) Describe(node URI) *Graph {
+// Describe returns a graph with all the triples where the given node
+// is subject. If asObject is true, it also includes the triples where
+// the node is object.
+func (g *Graph) Describe(node URI, asObject bool) *Graph {
 	res := NewGraph()
 	for subj, props := range g.nodes {
 		for pred, terms := range props {
 			for _, term := range terms {
-				if subj == node || term == node {
+				if subj == node || (asObject && term == node) {
 					res.Insert(Triple{Subj: subj, Pred: pred, Obj: term})
 				}
 			}

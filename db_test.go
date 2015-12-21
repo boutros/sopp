@@ -220,16 +220,29 @@ func TestDescribe_Quick(t *testing.T) {
 		}
 
 		for _, item := range items {
-			want := ref.Describe(item.Triple.Subj)
+			want := ref.Describe(item.Triple.Subj, false)
 
-			got, err := db.Describe(item.Triple.Subj)
+			got, err := db.Describe(item.Triple.Subj, false)
 			if err != nil {
-				t.Logf("DB.Describe(%v) failed: %v", err)
+				t.Logf("DB.Describe(%v, false) failed: %v", err)
 				t.FailNow()
 			}
 
 			if !got.Eq(want) {
-				t.Logf("DB.Describe(%v) =>\n%s\nwant:\n%s",
+				t.Logf("DB.Describe(%v, false) =>\n%s\nwant:\n%s",
+					item.Triple.Subj, got.Serialize(rdf.Turtle), want.Serialize(rdf.Turtle))
+				t.FailNow()
+			}
+
+			want = ref.Describe(item.Triple.Subj, true)
+			got, err = db.Describe(item.Triple.Subj, true)
+			if err != nil {
+				t.Logf("DB.Describe(%v, true) failed: %v", err)
+				t.FailNow()
+			}
+
+			if !got.Eq(want) {
+				t.Logf("DB.Describe(%v, true) =>\n%s\nwant:\n%s",
 					item.Triple.Subj, got.Serialize(rdf.Turtle), want.Serialize(rdf.Turtle))
 				t.FailNow()
 			}
