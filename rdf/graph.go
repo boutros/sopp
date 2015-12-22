@@ -285,6 +285,35 @@ func (g *Graph) Describe(node URI, asObject bool) *Graph {
 	return res
 }
 
+// Merge merges the other graph into current graph.
+func (g *Graph) Merge(other *Graph) *Graph {
+	for subj, props := range other.nodes {
+		// ensure subject exist
+		if _, ok := g.nodes[subj]; !ok {
+			g.nodes[subj] = make(map[URI]terms)
+		}
+		for pred, termsOther := range props {
+			// ensure predicate exist
+			termsCur, ok := g.nodes[subj][pred]
+			if !ok {
+				g.nodes[subj][pred] = make(terms, 0, 1)
+			}
+			// TODO sort terms to do binary search;
+			// faster if there are a lot, but maybe slower if just a few.
+		eachTerm:
+			for _, to := range termsOther {
+				for _, t := range termsCur {
+					if t == to {
+						continue eachTerm
+					}
+				}
+				g.nodes[subj][pred] = append(g.nodes[subj][pred], to)
+			}
+		}
+	}
+	return g
+}
+
 func (g *Graph) dot(base string, center URI) string {
 	var b bytes.Buffer
 	b.WriteString("digraph G {\n\tnode [shape=plaintext];\n\n")

@@ -351,3 +351,38 @@ func TestDescribe(t *testing.T) {
 		t.Errorf("Describe(<s1>, false) => \n%s\nwant:\n%s", got.Serialize(Turtle), wantG2.Serialize(Turtle))
 	}
 }
+
+func TestGraphMerge(t *testing.T) {
+	a := `<s> <p> "a" .
+<s2> <p> <o> . `
+
+	b := `<s> <p> "b" .
+<s2> <p> <o> .
+<s3> <p> <o> .`
+
+	want := `<s> <p> "a", "b" .
+<s2> <p> <o> .
+<s3> <p> <o> .`
+
+	dec := NewDecoder(bytes.NewBufferString(a))
+	ga, err := dec.DecodeGraph()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dec = NewDecoder(bytes.NewBufferString(b))
+	gb, err := dec.DecodeGraph()
+	if err != nil {
+		t.Fatal(err)
+	}
+	dec = NewDecoder(bytes.NewBufferString(want))
+	wantg, err := dec.DecodeGraph()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !ga.Merge(gb).Eq(wantg) {
+		t.Errorf("merging\n%s\nwith\n%s\ngot:\n%s\nwant:\n%s",
+			a, b, ga.Serialize(Turtle), want)
+	}
+
+}
