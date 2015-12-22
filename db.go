@@ -338,7 +338,7 @@ func (db *DB) Describe(node rdf.URI, asObject bool) (*rdf.Graph, error) {
 					if err != nil {
 						return err
 					}
-					g.Insert(rdf.Triple{subj.(rdf.URI), pred.(rdf.URI), node})
+					g.Insert(rdf.Triple{Subj: subj.(rdf.URI), Pred: pred.(rdf.URI), Obj: node})
 				}
 			case 1:
 				break outerOSP
@@ -578,9 +578,8 @@ func (db *DB) removeOrphanedTerms(tx *bolt.Tx, s, p, o uint32) error {
 			if err != nil {
 				if err == ErrNotFound {
 					return errors.New("bug: removeOrphanedTerms removing Term allready gone")
-				} else {
-					return err
 				}
+				return err
 			}
 		}
 	}

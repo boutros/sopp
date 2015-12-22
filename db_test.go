@@ -224,7 +224,7 @@ func TestDescribe_Quick(t *testing.T) {
 
 			got, err := db.Describe(item.Triple.Subj, false)
 			if err != nil {
-				t.Logf("DB.Describe(%v, false) failed: %v", err)
+				t.Logf("DB.Describe(%v, false) failed: %v", item.Triple.Subj, err)
 				t.FailNow()
 			}
 
@@ -237,7 +237,7 @@ func TestDescribe_Quick(t *testing.T) {
 			want = ref.Describe(item.Triple.Subj, true)
 			got, err = db.Describe(item.Triple.Subj, true)
 			if err != nil {
-				t.Logf("DB.Describe(%v, true) failed: %v", err)
+				t.Logf("DB.Describe(%v, true) failed: %v", item.Triple.Subj, err)
 				t.FailNow()
 			}
 
