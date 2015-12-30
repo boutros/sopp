@@ -353,6 +353,74 @@ func (db *DB) Describe(node rdf.URI, asObject bool) (*rdf.Graph, error) {
 	return g, err
 }
 
+// Import imports triples from an Turtle stream, in batches of given size.
+// It will ignore triples with blank nodes and errors.
+// It returns the total number of triples imported.
+func (db *DB) Import(r io.Reader, batchSize int) (int, error) {
+	dec := rdf.NewDecoder(r)
+	g := rdf.NewGraph()
+	c := 0 // totalt count
+	i := 0 // current batch count
+	for tr, err := dec.Decode(); err != io.EOF; tr, err = dec.Decode() {
+		if err != nil {
+			// log.Println(err.Error())
+			continue
+		}
+		g.Insert(tr)
+		i++
+		if i == batchSize {
+			err = db.ImportGraph(g)
+			if err != nil {
+				return c, err
+			}
+			c += i
+			i = 0
+			g = rdf.NewGraph()
+		}
+	}
+	if len(g.Nodes()) > 0 {
+		err := db.ImportGraph(g)
+		if err != nil {
+			return c, err
+		}
+		c += i
+	}
+	return c, nil
+}
+
+func (db *DB) ImportGraph(g *rdf.Graph) error {
+	return db.kv.Update(func(tx *bolt.Tx) error {
+		for subj, props := range g.Nodes() {
+
+			sID, err := db.addTerm(tx, subj)
+			if err != nil {
+				return err
+			}
+
+			for pred, terms := range props {
+				pID, err := db.addTerm(tx, pred)
+				if err != nil {
+					return err
+				}
+
+				for _, obj := range terms {
+					// TODO batch bitmap operations for all obj in terms
+					oID, err := db.addTerm(tx, obj)
+					if err != nil {
+						return err
+					}
+
+					err = db.storeTriple(tx, sID, pID, oID)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+		return nil
+	})
+}
+
 // Dump writes the entire database as a Turtle serialization to the given writer.
 func (db *DB) Dump(to io.Writer) error {
 	// TODO getTerm without expanding base URI?

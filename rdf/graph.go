@@ -69,6 +69,12 @@ func (g *Graph) Size() (n int) {
 	return n
 }
 
+// Nodes return the graph as a map which node URI's as key,
+// and a map of the subject's predicate URI's to Terms as value.
+func (g *Graph) Nodes() map[URI]map[URI]terms {
+	return g.nodes
+}
+
 // Triples returns all the triples in the Graph.
 func (g *Graph) Triples() []Triple {
 	trs := make([]Triple, 0, len(g.nodes))

@@ -257,28 +257,30 @@ func TestDescribe_Quick(t *testing.T) {
 	}
 }
 
-func TestDumpGraph_Quick(t *testing.T) {
+func TestImportDumpGraph_Quick(t *testing.T) {
 	f := func(items testdata) bool {
 		db := newTestDB()
 		defer db.Close()
 
-		for _, item := range items {
-			if err := db.Insert(item.Triple); err != nil {
-				t.Logf("DB.Insert(%v) failed: %v", item.Triple, err)
-				t.FailNow()
-			}
+		input := items.Graph().Serialize(rdf.Turtle, "http://test.org/")
+		n, err := db.Import(bytes.NewBufferString(input), 1000)
+		if err != nil {
+			t.Logf("DB.Import() failed: %v", err)
+			t.FailNow()
+		}
+		if n != len(items) {
+			t.Logf("DB.Import() => %d; want %d", n, len(items))
+			t.FailNow()
 		}
 
 		want := items.Graph()
-		t.Logf(want.Serialize(rdf.Turtle, "http://test.org/"))
 		var b bytes.Buffer
-		err := db.Dump(&b)
+		err = db.Dump(&b)
 		if err != nil {
 			t.Logf("DB.Dump() failed: %v", err)
 			t.FailNow()
 		}
-		t.Log("dumped:")
-		t.Log(b.String())
+
 		dec := rdf.NewDecoder(&b)
 		got, err := dec.DecodeGraph()
 		if err != nil {
@@ -287,11 +289,6 @@ func TestDumpGraph_Quick(t *testing.T) {
 		}
 		if !got.Eq(want) {
 			t.Log("Dump of graph not equal inserted graph")
-			t.Log("got:")
-			t.Log(got)
-			t.Log("want:")
-			t.Log(want)
-			t.Log(want.Serialize(rdf.Turtle, "http://test.org/"))
 			t.FailNow()
 		}
 
