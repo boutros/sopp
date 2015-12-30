@@ -24,6 +24,25 @@ func TestNewURI(t *testing.T) {
 	}
 }
 
+func TestURIResolve(t *testing.T) {
+	tests := []struct{ in, base, want string }{
+		{"abc", "http://a.org", "http://a.org/abc"},
+		{"abc", "http://a.org/", "http://a.org/abc"},
+		{"/abc", "http://a.org/", "http://a.org/abc"},
+		{"/abc", "http://a.org", "http://a.org/abc"},
+		{"abc", "http://b.org/a#", "http://b.org/a#abc"},
+		{"#abc", "http://b.org/a#", "http://b.org/a#abc"},
+		{"#abc", "http://b.org/a", "http://b.org/a#abc"},
+		{"http://test.org/abc", "http://a.org", "http://test.org/abc"},
+	}
+
+	for _, test := range tests {
+		if got := NewURI(test.in).Resolve(NewURI(test.base)).String(); got != test.want {
+			t.Errorf("URI(%q).Resolve(%q) => %q; want %q", test.in, test.base, got, test.want)
+		}
+	}
+}
+
 func TestURISplit(t *testing.T) {
 	//TODO
 }

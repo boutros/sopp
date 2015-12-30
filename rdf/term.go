@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // Commonly used datatype URIs (and the ones used by this package internally):
@@ -49,6 +51,31 @@ func NewURI(s string) URI {
 // String returns the URI as a string.
 func (u URI) String() string {
 	return string(u)
+}
+
+// Resolve resolves the URI against the given base URI, and return
+// the new, absolute URI. If the URI is no relative, it is returned umonified.
+func (u URI) Resolve(base URI) URI {
+	// Return early if the URI is absolute
+	if strings.HasPrefix(string(u), "http://") || base == "" {
+		// TODO: An URI can have other schemas than http
+		return u
+	}
+	r, _ := utf8.DecodeRuneInString(string(u))
+	switch r {
+	case '/':
+		return URI(strings.TrimSuffix(string(base), "/") + string(u))
+	case '#':
+		return URI(strings.TrimSuffix(string(base), "#") + string(u))
+	default:
+		r, _ := utf8.DecodeLastRuneInString(string(base))
+		switch r {
+		case '/', '#':
+			return URI(string(base) + string(u))
+		default:
+			return URI(string(base) + "/" + string(u))
+		}
+	}
 }
 
 // validAsTerm satiesfies the Term interface for URI.
