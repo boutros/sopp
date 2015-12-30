@@ -204,12 +204,15 @@ outer:
 	return
 }
 
-func (g *Graph) Serialize(f Format) string {
+func (g *Graph) Serialize(f Format, base string) string {
 	var b bytes.Buffer
 
 	if f == Turtle {
+		if base != "" {
+			fmt.Fprintf(&b, "@base <%s> .\n", base)
+		}
 		for subj, props := range g.nodes {
-			fmt.Fprintf(&b, "<%s> ", subj)
+			fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(subj), base))
 			p := 0
 			for pred, terms := range props {
 				if p > 0 {
@@ -218,11 +221,11 @@ func (g *Graph) Serialize(f Format) string {
 
 				for i, term := range terms {
 					if i == 0 {
-						fmt.Fprintf(&b, "<%s> ", pred)
+						fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(pred), base))
 					}
 					switch t := term.(type) {
 					case URI:
-						fmt.Fprintf(&b, "<%s>", t)
+						fmt.Fprintf(&b, "<%s>", strings.TrimPrefix(string(t), base))
 					case Literal:
 						switch t.DataType() {
 						case RDFlangString:
@@ -230,7 +233,7 @@ func (g *Graph) Serialize(f Format) string {
 						case XSDstring:
 							fmt.Fprintf(&b, "%q", t.String())
 						default:
-							fmt.Fprintf(&b, "%q^^<%s>", t.String(), t.DataType())
+							fmt.Fprintf(&b, "%q^^<%s>", t.String(), strings.TrimPrefix(string(t.DataType()), base))
 						}
 					}
 					if i+1 < len(terms) {

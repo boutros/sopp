@@ -156,7 +156,7 @@ func TestGraphEq(t *testing.T) {
 
 	for _, test := range tests {
 		if got := test.a.Eq(test.b); got != test.want {
-			t.Errorf("%v\nEq\n%v => %v; want %v", test.a.Serialize(Turtle), test.b.Serialize(Turtle), got, test.want)
+			t.Errorf("%v\nEq\n%v => %v; want %v", test.a.Serialize(Turtle, ""), test.b.Serialize(Turtle, ""), got, test.want)
 		}
 	}
 }
@@ -178,7 +178,7 @@ func TestGraphNTriples(t *testing.T) {
 `
 	wantLines := strings.Split(want, "\n")
 	sort.Strings(wantLines)
-	nt := g.Serialize(NTriples)
+	nt := g.Serialize(NTriples, "")
 	ntLines := strings.Split(nt, "\n")
 	sort.Strings(ntLines)
 	if len(ntLines) != len(wantLines) {
@@ -215,7 +215,7 @@ func TestGraphTurtle(t *testing.T) {
 	}
 	if !g.Eq(wantGraph) {
 		t.Errorf("Graph.Serialize(%v) => \n%s\nwant:\n%s",
-			trs, g.Serialize(Turtle), wantGraph.Serialize(Turtle))
+			trs, g.Serialize(Turtle, ""), wantGraph.Serialize(Turtle, ""))
 	}
 }
 
@@ -303,7 +303,7 @@ func TestDescribe(t *testing.T) {
 	input := `
 <s1> <p> "a" ;
      <p2> "b" ;
-     <p3> <s2> .
+     <p3> <s2> ;
      <p4> "x", "y" .
 <s3> <p5> <s1> ;
      <p> "zz" .
@@ -312,13 +312,13 @@ func TestDescribe(t *testing.T) {
 	want1 := `
 <s1> <p> "a" ;
      <p2> "b" ;
-     <p3> <s2> .
+     <p3> <s2> ;
      <p4> "x", "y" .`
 
 	want2 := `
 <s1> <p> "a" ;
      <p2> "b" ;
-     <p3> <s2> .
+     <p3> <s2> ;
      <p4> "x", "y" .
 <s3> <p5> <s1> .`
 
@@ -342,13 +342,13 @@ func TestDescribe(t *testing.T) {
 	got := g.Describe(NewURI("s1"), false)
 
 	if !got.Eq(wantG1) {
-		t.Errorf("Describe(<s1>, false) => \n%s\nwant:\n%s", got.Serialize(Turtle), wantG1.Serialize(Turtle))
+		t.Errorf("Describe(<s1>, false) => \n%s\nwant:\n%s", got.Serialize(Turtle, ""), wantG1.Serialize(Turtle, ""))
 	}
 
 	got = g.Describe(NewURI("s1"), true)
 
 	if !got.Eq(wantG2) {
-		t.Errorf("Describe(<s1>, false) => \n%s\nwant:\n%s", got.Serialize(Turtle), wantG2.Serialize(Turtle))
+		t.Errorf("Describe(<s1>, false) => \n%s\nwant:\n%s", got.Serialize(Turtle, ""), wantG2.Serialize(Turtle, ""))
 	}
 }
 
@@ -382,7 +382,7 @@ func TestGraphMerge(t *testing.T) {
 
 	if !ga.Merge(gb).Eq(wantg) {
 		t.Errorf("merging\n%s\nwith\n%s\ngot:\n%s\nwant:\n%s",
-			a, b, ga.Serialize(Turtle), want)
+			a, b, ga.Serialize(Turtle, ""), want)
 	}
 
 }
