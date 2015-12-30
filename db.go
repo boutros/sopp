@@ -1,10 +1,12 @@
 package sopp
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -351,6 +353,95 @@ func (db *DB) Describe(node rdf.URI, asObject bool) (*rdf.Graph, error) {
 	return g, err
 }
 
+// Dump writes the entire database as a Turtle serialization to the given writer.
+func (db *DB) Dump(to io.Writer) error {
+	// TODO getTerm without expanding base URI?
+	// base is prefixed added, but then stripped again here
+	w := bufio.NewWriter(to)
+	w.WriteString("@base <")
+	w.WriteString(db.base)
+	w.WriteString(">")
+	return db.kv.View(func(tx *bolt.Tx) error {
+		defer w.Flush()
+
+		var curSubj uint32
+		var subj, pred, obj rdf.Term
+
+		bkt := tx.Bucket(bucketSPO)
+		if err := bkt.ForEach(func(k, v []byte) error {
+			if len(k) != 8 {
+				panic("len(SPO key) != 8")
+			}
+			var err error
+			sID := btou32(k[:4])
+			if sID != curSubj {
+				// end previous statement
+				w.WriteString(" .\n")
+				curSubj = sID
+
+				if subj, err = db.getTerm(tx, sID); err != nil {
+					return err
+				}
+				w.WriteRune('<')
+				w.WriteString(strings.TrimPrefix(subj.String(), db.base))
+				w.WriteString("> ")
+			} else {
+				// continue with same subject
+				w.WriteString(" ;\n\t")
+			}
+
+			pID := btou32(k[4:])
+
+			if pred, err = db.getTerm(tx, pID); err != nil {
+				return err
+			}
+			w.WriteRune('<')
+			w.WriteString(strings.TrimPrefix(pred.String(), db.base))
+			w.WriteString("> ")
+
+			bitmap := roaring.NewRoaringBitmap()
+			if _, err := bitmap.ReadFrom(bytes.NewReader(v)); err != nil {
+				return err
+			}
+
+			i := bitmap.Iterator()
+			c := 0
+			for i.HasNext() {
+				if obj, err = db.getTerm(tx, i.Next()); err != nil {
+					return err
+				}
+				if c > 0 {
+					w.WriteString(", ")
+				}
+				switch t := obj.(type) {
+				case rdf.URI:
+					w.WriteRune('<')
+					w.WriteString(strings.TrimPrefix(obj.String(), db.base))
+					w.WriteRune('>')
+				case rdf.Literal:
+					// TODO bench & optimize
+					switch t.DataType() {
+					case rdf.RDFlangString:
+						fmt.Fprintf(w, "%q@%s", t.String(), t.Lang())
+					case rdf.XSDstring:
+						fmt.Fprintf(w, "%q", t.String())
+					default:
+						fmt.Fprintf(w, "%q^^<%s>", t.String(), strings.TrimPrefix(t.DataType().String(), db.base))
+					}
+				}
+				c++
+			}
+
+			return nil
+		}); err != nil {
+			return err
+		}
+
+		w.WriteString(" .\n")
+		return nil
+	})
+}
+
 func (db *DB) forEach(fn func(rdf.Triple) error) error {
 	return db.kv.View(func(tx *bolt.Tx) error {
 
@@ -358,7 +449,7 @@ func (db *DB) forEach(fn func(rdf.Triple) error) error {
 		// iterate over each each triple in SPO index
 		if err := bkt.ForEach(func(k, v []byte) error {
 			if len(k) != 8 {
-				return nil
+				panic("len(SPO key) != 8")
 			}
 			sID := btou32(k[:4])
 			pID := btou32(k[4:])

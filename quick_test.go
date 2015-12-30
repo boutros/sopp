@@ -88,7 +88,7 @@ func (testdata) Generate(rand *rand.Rand, size int) reflect.Value {
 				tr.Obj = nodes[rand.Intn(len(nodes))]
 			case r < 25:
 				// 5% object is an URI not present in graph
-				tr.Obj = randURI("")
+				tr.Obj = randURI("http://somewhere.no/")
 			default:
 				// 75% object is a Literal
 				tr.Obj = randLiteral()
@@ -101,18 +101,29 @@ func (testdata) Generate(rand *rand.Rand, size int) reflect.Value {
 	return reflect.ValueOf(graph)
 }
 
+func (t testdata) Graph() *rdf.Graph {
+	g := rdf.NewGraph()
+	for _, item := range t {
+		g.Insert(item.Triple)
+	}
+	return g
+}
+
 func randURI(base string) rdf.URI {
 	n := rnd.Intn(100)
 	if n > 70 {
 		// 70% using base uri
-		base = ""
+		base = "http://"
 	}
 
-	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-///..")
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-..///")
 	l := rnd.Intn(100) + 1
 	r := make([]rune, l)
 	for i := range r {
 		r[i] = letters[rand.Intn(len(letters))]
+	}
+	if r[0] == '/' {
+		r[0] = letters[rand.Intn(len(letters)-3)]
 	}
 	return rdf.NewURI(base + string(r))
 }

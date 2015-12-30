@@ -1,6 +1,7 @@
 package sopp
 
 import (
+	"bytes"
 	"io/ioutil"
 	"os"
 	"sort"
@@ -63,7 +64,7 @@ func TestInsert_Quick(t *testing.T) {
 				t.FailNow()
 			}
 			if err != nil {
-				t.Logf("DB.Has(%v) failed: ", item.Triple, err)
+				t.Logf("DB.Has(%v) failed: %v", item.Triple, err)
 				t.FailNow()
 			}
 
@@ -79,7 +80,7 @@ func TestInsert_Quick(t *testing.T) {
 				t.FailNow()
 			}
 			if err != nil {
-				t.Logf("DB.Has(%v) failed: ", item.Triple, err)
+				t.Logf("DB.Has(%v) failed: %v", item.Triple, err)
 				t.FailNow()
 			}
 		}
@@ -116,7 +117,7 @@ func TestDelete_Quick(t *testing.T) {
 				t.FailNow()
 			}
 			if err != nil {
-				t.Logf("DB.Has(%v) failed: ", item.Triple, err)
+				t.Logf("DB.Has(%v) failed: %v", item.Triple, err)
 				t.FailNow()
 			}
 
@@ -230,7 +231,7 @@ func TestDescribe_Quick(t *testing.T) {
 
 			if !got.Eq(want) {
 				t.Logf("DB.Describe(%v, false) =>\n%s\nwant:\n%s",
-					item.Triple.Subj, got.Serialize(rdf.Turtle), want.Serialize(rdf.Turtle))
+					item.Triple.Subj, got.Serialize(rdf.Turtle, ""), want.Serialize(rdf.Turtle, ""))
 				t.FailNow()
 			}
 
@@ -243,9 +244,55 @@ func TestDescribe_Quick(t *testing.T) {
 
 			if !got.Eq(want) {
 				t.Logf("DB.Describe(%v, true) =>\n%s\nwant:\n%s",
-					item.Triple.Subj, got.Serialize(rdf.Turtle), want.Serialize(rdf.Turtle))
+					item.Triple.Subj, got.Serialize(rdf.Turtle, ""), want.Serialize(rdf.Turtle, ""))
 				t.FailNow()
 			}
+		}
+
+		print(".")
+		return true
+	}
+	if err := quick.Check(f, qconfig()); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestDumpGraph_Quick(t *testing.T) {
+	f := func(items testdata) bool {
+		db := newTestDB()
+		defer db.Close()
+
+		for _, item := range items {
+			if err := db.Insert(item.Triple); err != nil {
+				t.Logf("DB.Insert(%v) failed: %v", item.Triple, err)
+				t.FailNow()
+			}
+		}
+
+		want := items.Graph()
+		t.Logf(want.Serialize(rdf.Turtle, "http://test.org/"))
+		var b bytes.Buffer
+		err := db.Dump(&b)
+		if err != nil {
+			t.Logf("DB.Dump() failed: %v", err)
+			t.FailNow()
+		}
+		t.Log("dumped:")
+		t.Log(b.String())
+		dec := rdf.NewDecoder(&b)
+		got, err := dec.DecodeGraph()
+		if err != nil {
+			t.Logf("Decoding dump of DB failed: %v", err)
+			t.FailNow()
+		}
+		if !got.Eq(want) {
+			t.Log("Dump of graph not equal inserted graph")
+			t.Log("got:")
+			t.Log(got)
+			t.Log("want:")
+			t.Log(want)
+			t.Log(want.Serialize(rdf.Turtle, "http://test.org/"))
+			t.FailNow()
 		}
 
 		print(".")
