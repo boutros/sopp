@@ -106,6 +106,7 @@ runeSwitch:
 	case '\n':
 		s.Row++
 		s.ignore()
+		s.Col = 0
 		tok = tokenEOL
 	case '<':
 		if !s.scanTo('>') {
@@ -222,9 +223,9 @@ func (s *scanner) scanTo(stop rune) bool {
 		switch r {
 		case eof:
 			return false
-		case utf8.RuneError:
-			s.Error = "illegal UTF-8 encoding"
-			return false
+		//case utf8.RuneError:
+		//	s.Error = "illegal UTF-8 encoding"
+		//	return false
 		case '\\':
 			s.unescape = true
 		}

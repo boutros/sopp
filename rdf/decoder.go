@@ -52,7 +52,37 @@ func (d *Decoder) Decode() (Triple, error) {
 }
 
 func (d *Decoder) parseSubject() (err error) {
-	d.tr.Subj, err = d.parseURI()
+	tok := d.scanner.Scan()
+	switch tok.Type {
+	case tokenBase:
+		tok = d.scanner.Scan()
+		if tok.Type != tokenURI {
+			err = fmt.Errorf("%d:%d expected URI after base directive, got %q (%s)",
+				d.scanner.Row, d.scanner.Col, tok.Text, tok.Type)
+			break
+		}
+
+		d.Base = URI(tok.Text)
+
+		tok = d.scanner.Scan()
+		if tok.Type != tokenDot {
+			err = fmt.Errorf("%d:%d expected Dot to close base directive, got %q (%s)",
+				d.scanner.Row, d.scanner.Col, tok.Text, tok.Type)
+			break
+		}
+		return d.parseSubject()
+	case tokenURI:
+		d.tr.Subj = d.newURI(tok.Text)
+	case tokenEOL:
+		if d.tr.Subj, err = d.parseURI(); err != nil {
+			return err
+		}
+	case tokenEOF:
+		err = io.EOF
+	default:
+		err = fmt.Errorf("%d:%d expected URI or directive, got %q (%s)",
+			d.scanner.Row, d.scanner.Col, tok.Text, tok.Type)
+	}
 	return err
 }
 
@@ -61,11 +91,15 @@ func (d *Decoder) parsePredicate() (err error) {
 	return err
 }
 
+func (d *Decoder) newURI(s string) URI {
+	return URI(s).Resolve(d.Base)
+}
+
 func (d *Decoder) parseURI() (uri URI, err error) {
 	tok := d.scanner.Scan()
 	switch tok.Type {
 	case tokenURI:
-		uri = NewURI(tok.Text)
+		uri = d.newURI(tok.Text)
 	case tokenEOL:
 		return d.parseURI()
 	case tokenEOF:
@@ -81,7 +115,7 @@ func (d *Decoder) parseObject() error {
 	tok := d.scanner.Scan()
 	switch tok.Type {
 	case tokenURI:
-		d.tr.Obj = NewURI(tok.Text)
+		d.tr.Obj = d.newURI(tok.Text)
 		break
 	case tokenLiteral:
 		next := d.scanner.Scan()
@@ -95,7 +129,7 @@ func (d *Decoder) parseObject() error {
 			next = d.scanner.Scan()
 			switch next.Type {
 			case tokenURI:
-				d.tr.Obj = Literal{value: tok.Text, datatype: NewURI(next.Text)}
+				d.tr.Obj = Literal{value: tok.Text, datatype: d.newURI(next.Text)}
 			case tokenEOF:
 				return io.EOF
 			}
@@ -111,6 +145,9 @@ func (d *Decoder) parseObject() error {
 			return nil
 		case tokenLangTag:
 			d.tr.Obj = NewLangLiteral(tok.Text, next.Text)
+		case tokenIllegal:
+			return fmt.Errorf("%d:%d expected Datatype|Dot|Semicolon|Comma, got %q (%s: %s)",
+				d.scanner.Row, d.scanner.Col, tok.Text, tok.Type, d.scanner.Error)
 		default:
 			return fmt.Errorf("%d:%d expected Datatype|Dot|Semicolon|Comma, got %q (%s)",
 				d.scanner.Row, d.scanner.Col, tok.Text, tok.Type)
@@ -123,7 +160,7 @@ func (d *Decoder) parseObject() error {
 	tok = d.scanner.Scan()
 	switch tok.Type {
 	case tokenDot:
-		d.keepPred = false
+		d.keepSubj = false
 		d.keepPred = false
 	case tokenSemicolon:
 		d.keepSubj = true
@@ -133,8 +170,12 @@ func (d *Decoder) parseObject() error {
 		d.keepPred = true
 	case tokenEOF:
 		return io.EOF
+	case tokenIllegal:
+		return fmt.Errorf("%d:%d expected Dot|Semicolon|Comma, got %q (%s: %s)",
+			d.scanner.Row, d.scanner.Col, tok.Text, tok.Type, d.scanner.Error)
 	default:
-		return fmt.Errorf("expected Dot|Semicolon|Comma, got %v", tok.Type)
+		return fmt.Errorf("%d:%d expected Dot|Semicolon|Comma, got %q (%s)",
+			d.scanner.Row, d.scanner.Col, tok.Text, tok.Type)
 	}
 
 	return nil
@@ -146,6 +187,7 @@ func (d *Decoder) DecodeGraph() (*Graph, error) {
 	for tr, err := d.Decode(); err != io.EOF; tr, err = d.Decode() {
 		if err != nil {
 			fmt.Println(err)
+			fmt.Println(string(d.scanner.line))
 			panic("TODO DecodeGraph with errors")
 		}
 		g.Insert(tr)
