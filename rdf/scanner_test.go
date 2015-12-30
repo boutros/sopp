@@ -69,6 +69,10 @@ func TestScanTokens(t *testing.T) {
 			{tokenURI, "http://example/禅"},
 			{tokenLiteral, "\"\\\r\n Здра́вствуйте\t☺"},
 			{tokenDot, ""}}},
+		{"@base <a> .", []token{
+			{tokenBase, ""},
+			{tokenURI, "a"},
+			{tokenDot, ""}}},
 	}
 
 	for _, test := range tests {

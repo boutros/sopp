@@ -155,7 +155,12 @@ runeSwitch:
 			s.Error = "invalid language tag"
 			break runeSwitch
 		}
-		tok = tokenLangTag
+		if string(s.line[s.start:s.pos]) == "base" {
+			tok = tokenBase
+			s.ignore()
+		} else {
+			tok = tokenLangTag
+		}
 	case '^':
 		if s.peek() != '^' {
 			s.Error = "unexpected token"
