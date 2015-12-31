@@ -126,8 +126,10 @@ func (g *Graph) Eq(other *Graph) bool {
 }
 
 // eqTerms checks if two Terms contains the same triples.
-// Will panics if a & b is of different length.
 func eqTerms(a, b terms) bool {
+	if len(a) != len(b) {
+		return false
+	}
 	sort.Sort(a)
 	sort.Sort(b)
 	for i, t := range a {

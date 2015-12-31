@@ -3,6 +3,7 @@ package sopp
 import (
 	"bytes"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"sort"
 	"testing"
@@ -42,16 +43,7 @@ func TestInsert_Quick(t *testing.T) {
 		db := newTestDB()
 		defer db.Close()
 
-		// Remove any duplicates from the testdata
-		sort.Sort(items)
-		c := 0
-		for i, item := range items {
-			if i > 0 && item == items[i-1] {
-				items[i] = items[c] // don't need to preserve order
-				c++
-			}
-		}
-		items = items[c:]
+		RemoveDuplicates(&items)
 
 		for _, item := range items {
 			// Verify that triple is not present in graph
@@ -153,16 +145,7 @@ func TestEncodeDecode_Quick(t *testing.T) {
 		db := newTestDB()
 		defer db.Close()
 
-		// Remove any duplicates from the testdata
-		sort.Sort(items)
-		c := 0
-		for i, item := range items {
-			if i > 0 && item == items[i-1] {
-				// we want to preserve order
-				copy(items[i-1:], items[i:])
-			}
-		}
-		items = items[:c]
+		RemoveDuplicates(&items)
 
 		for _, item := range items {
 			if err := db.Insert(item.Triple); err != nil {
@@ -262,8 +245,10 @@ func TestImportDumpGraph_Quick(t *testing.T) {
 		db := newTestDB()
 		defer db.Close()
 
+		RemoveDuplicates(&items)
+
 		input := items.Graph().Serialize(rdf.Turtle, "http://test.org/")
-		n, err := db.Import(bytes.NewBufferString(input), 1000)
+		n, err := db.Import(bytes.NewBufferString(input), rand.Intn(1000))
 		if err != nil {
 			t.Logf("DB.Import() failed: %v", err)
 			t.FailNow()

@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"reflect"
+	"sort"
 	"testing/quick"
 	"time"
 
@@ -107,6 +108,18 @@ func (t testdata) Graph() *rdf.Graph {
 		g.Insert(item.Triple)
 	}
 	return g
+}
+
+func RemoveDuplicates(t *testdata) {
+	sort.Sort(*t)
+	c := len(*t)
+	for i, item := range *t {
+		if i > 0 && item == (*t)[i-1] {
+			copy((*t)[i-1:], (*t)[i:])
+			c--
+		}
+	}
+	(*t) = (*t)[:c]
 }
 
 func randURI(base string) rdf.URI {
