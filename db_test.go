@@ -265,7 +265,6 @@ func TestImportDumpGraph_Quick(t *testing.T) {
 			t.Logf("DB.Dump() failed: %v", err)
 			t.FailNow()
 		}
-
 		dec := rdf.NewDecoder(&b)
 		got, err := dec.DecodeGraph()
 		if err != nil {
@@ -274,6 +273,10 @@ func TestImportDumpGraph_Quick(t *testing.T) {
 		}
 		if !got.Eq(want) {
 			t.Log("Dump of graph not equal inserted graph")
+			t.Log("got:")
+			t.Log(got.Triples())
+			t.Log("want:")
+			t.Log(want.Triples())
 			t.FailNow()
 		}
 
