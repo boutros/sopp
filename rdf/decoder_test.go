@@ -25,7 +25,7 @@ func TestDecode(t *testing.T) {
 			Triple{NewURI("s"), NewURI("p"), NewLiteral("y")},
 			Triple{NewURI("s"), NewURI("p2"), NewLiteral("z")},
 			Triple{NewURI("s2"), NewURI("p3"), NewURI("s")}}},
-		{"<s> <p> <o> ; <p2> <o2> ; <p3> <o3> .\n <s2> <p4> <o4> .\n", []Triple{
+		{"<s> <p> <o>\n\t;<p2> <o2>\n\t;<p3> <o3> .\n <s2> <p4> <o4> .\n", []Triple{
 			Triple{NewURI("s"), NewURI("p"), NewURI("o")},
 			Triple{NewURI("s"), NewURI("p2"), NewURI("o2")},
 			Triple{NewURI("s"), NewURI("p3"), NewURI("o3")},

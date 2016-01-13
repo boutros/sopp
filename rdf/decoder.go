@@ -133,6 +133,9 @@ func (d *Decoder) parseObject() error {
 			case tokenEOF:
 				return io.EOF
 			}
+		case tokenEOL:
+			d.tr.Obj = NewLiteral(tok.Text)
+			// continue to parse triple next line if ;
 		case tokenSemicolon:
 			d.keepSubj = true
 			d.keepPred = false
@@ -157,7 +160,12 @@ func (d *Decoder) parseObject() error {
 	}
 
 	// We got a full triple, check for termination
-	tok = d.scanner.Scan()
+	for {
+		tok = d.scanner.Scan()
+		if tok.Type != tokenEOL {
+			break
+		}
+	}
 	switch tok.Type {
 	case tokenDot:
 		d.keepSubj = false
