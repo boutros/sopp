@@ -359,7 +359,10 @@ func (g *Graph) Dot(base string, focus []string) string {
 			b.WriteString(node.String())
 			b.WriteString("' BGCOLOR='#e0e0e0' COLSPAN='2'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;")
 			b.WriteString(strings.TrimPrefix(node.String(), base))
-			b.WriteString("&gt;</FONT></TD></TR>\n")
+			b.WriteString("&gt;</FONT></TD>")
+			b.WriteString("<TD TITLE='add to graph' BGCOLOR='#e0e0e0' HREF='/")
+			b.WriteString(strings.Join(focus, "+/") + "+/" + node.String())
+			b.WriteString("'><FONT COLOR='blue'><B>+</B></FONT></TD></TR>\n")
 		}
 		for pred, terms := range props {
 			_, shortPred := split(pred.String())
