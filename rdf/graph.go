@@ -373,7 +373,10 @@ func (g *Graph) Dot(base string, focus []string) string {
 					// Inline nodes witch does not appear as subject (i.e has no attributes)
 					b.WriteString("\t<TR>\n\t\t<TD ALIGN='RIGHT'><B>")
 					b.WriteString(shortPred)
-					b.WriteString("</B> </TD>\n\t\t<TD ALIGN='LEFT' HREF='/")
+					b.WriteString("</B> </TD>\n\t\t<TD ALIGN='LEFT' HREF='")
+					if !strings.HasPrefix(t.String(), "http://") {
+						b.WriteRune('/')
+					}
 					b.WriteString(t.String())
 					b.WriteString("' TITLE='")
 					b.WriteString(t.String())
