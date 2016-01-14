@@ -328,7 +328,9 @@ func (g *Graph) Merge(other *Graph) *Graph {
 // Dot returns a representation of the graph in graphviz' dot format.
 func (g *Graph) Dot(base string, center URI) string {
 	var b bytes.Buffer
-	b.WriteString("digraph G {\n\tnode [shape=plaintext];\n\n")
+	b.WriteString("digraph \"")
+	b.WriteString(center.String())
+	b.WriteString("\" {\n\tnode [shape=plaintext];\n\n")
 
 	type link struct {
 		from, to URI
@@ -345,7 +347,9 @@ func (g *Graph) Dot(base string, center URI) string {
 			b.WriteString("&gt;</FONT></TD></TR>\n")
 		} else {
 			b.WriteString("\t<TR><TD HREF='/")
-			b.WriteString(node.String() + ".svg")
+			b.WriteString(node.String())
+			b.WriteString("' TITLE='")
+			b.WriteString(node.String())
 			b.WriteString("' BGCOLOR='#e0e0e0' COLSPAN='2'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;")
 			b.WriteString(strings.TrimPrefix(node.String(), base))
 			b.WriteString("&gt;</FONT></TD></TR>\n")
@@ -355,7 +359,20 @@ func (g *Graph) Dot(base string, center URI) string {
 			for _, term := range terms {
 				switch t := term.(type) {
 				case URI:
-					links = append(links, link{node, t, shortPred})
+					if _, ok := g.nodes[term.(URI)]; ok {
+						links = append(links, link{node, t, shortPred})
+						break
+					}
+					// Inline nodes witch does not appear as subject (i.e has no attributes)
+					b.WriteString("\t<TR>\n\t\t<TD ALIGN='RIGHT'><B>")
+					b.WriteString(shortPred)
+					b.WriteString("</B> </TD>\n\t\t<TD ALIGN='LEFT' HREF='/")
+					b.WriteString(t.String())
+					b.WriteString("' TITLE='")
+					b.WriteString(t.String())
+					b.WriteString("'><FONT COLOR='blue'>")
+					b.WriteString(t.String())
+					b.WriteString("</FONT></TD>\n\t</TR>\n")
 				case Literal:
 					b.WriteString("\t<TR>\n\t\t<TD ALIGN='RIGHT'><B>")
 					b.WriteString(shortPred)
