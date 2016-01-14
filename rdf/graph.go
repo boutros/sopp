@@ -326,10 +326,10 @@ func (g *Graph) Merge(other *Graph) *Graph {
 }
 
 // Dot returns a representation of the graph in graphviz' dot format.
-func (g *Graph) Dot(base string, center []string) string {
+func (g *Graph) Dot(base string, focus []string) string {
 	var b bytes.Buffer
 	b.WriteString("digraph \"")
-	b.WriteString(strings.Join(center, "+"))
+	b.WriteString(strings.Join(focus, "+"))
 	b.WriteString("\" {\n\tnode [shape=plaintext];\n\n")
 
 	type link struct {
@@ -341,14 +341,14 @@ func (g *Graph) Dot(base string, center []string) string {
 
 	for node, props := range g.nodes {
 		fmt.Fprintf(&b, "\t%q[label=<<TABLE BORDER='0' CELLBORDER='1' CELLSPACING='0' CELLPADDING='5'>\n", node)
-		isCenter := false
-		for _, c := range center {
+		isFocus := false
+		for _, c := range focus {
 			if node.String() == c {
-				isCenter = true
+				isFocus = true
 				break
 			}
 		}
-		if isCenter {
+		if isFocus {
 			b.WriteString("\t<TR><TD BGCOLOR='#a0ffa0' COLSPAN='2'><FONT POINT-SIZE='12' FACE='monospace'>&lt;")
 			b.WriteString(strings.TrimPrefix(node.String(), base))
 			b.WriteString("&gt;</FONT></TD></TR>\n")
@@ -384,7 +384,7 @@ func (g *Graph) Dot(base string, center []string) string {
 					} else {
 						b.WriteString("</FONT></TD>\n\t\t")
 						b.WriteString("<TD TITLE='add to graph' BGCOLOR='#e0e0e0' HREF='/")
-						b.WriteString(strings.Join(center, "+/") + "+/" + t.String())
+						b.WriteString(strings.Join(focus, "+/") + "+/" + t.String())
 						b.WriteString("'><FONT COLOR='blue'><B>+</B></FONT></TD>\n\t</TR>\n")
 					}
 				case Literal:
