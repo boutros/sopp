@@ -293,7 +293,7 @@ func TestGraphDot(t *testing.T) {
 	"http://example.org/work/2"->"http://example.org/person/2"[label="written_by"];
 }`
 	// TODO split lines, sort and compare
-	if got := g.dot("http://example.org/", NewURI("http://example.org/person/2")); got != want {
+	if got := g.Dot("http://example.org/", NewURI("http://example.org/person/2")); got != want {
 		t.Errorf("got:\n%s\nwant:\n%v", got, want)
 	}
 

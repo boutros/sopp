@@ -325,7 +325,8 @@ func (g *Graph) Merge(other *Graph) *Graph {
 	return g
 }
 
-func (g *Graph) dot(base string, center URI) string {
+// Dot returns a representation of the graph in graphviz' dot format.
+func (g *Graph) Dot(base string, center URI) string {
 	var b bytes.Buffer
 	b.WriteString("digraph G {\n\tnode [shape=plaintext];\n\n")
 
@@ -343,7 +344,7 @@ func (g *Graph) dot(base string, center URI) string {
 			b.WriteString(strings.TrimPrefix(node.String(), base))
 			b.WriteString("&gt;</FONT></TD></TR>\n")
 		} else {
-			b.WriteString("\t<TR><TD HREF='")
+			b.WriteString("\t<TR><TD HREF='/")
 			b.WriteString(node.String() + ".svg")
 			b.WriteString("' BGCOLOR='#e0e0e0' COLSPAN='2'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;")
 			b.WriteString(strings.TrimPrefix(node.String(), base))
