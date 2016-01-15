@@ -116,6 +116,13 @@ runeSwitch:
 		addStart = 1
 		addEnd = -1
 		tok = tokenURI
+	case 'a':
+		if !isWhitespace(s.peek()) {
+			s.Error = "unexpected token"
+			s.scanUntilNextToken()
+			break runeSwitch
+		}
+		return token{tokenURI, string(RDFtype)}
 	case '.':
 		s.ignore()
 		tok = tokenDot

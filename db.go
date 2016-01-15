@@ -463,9 +463,13 @@ func (db *DB) Dump(to io.Writer) error {
 			if pred, err = db.getTerm(tx, pID); err != nil {
 				return err
 			}
-			w.WriteRune('<')
-			w.WriteString(strings.TrimPrefix(pred.String(), db.base))
-			w.WriteString("> ")
+			if pred == rdf.RDFtype {
+				w.WriteString("a ")
+			} else {
+				w.WriteRune('<')
+				w.WriteString(strings.TrimPrefix(pred.String(), db.base))
+				w.WriteString("> ")
+			}
 
 			bitmap := roaring.NewRoaringBitmap()
 			if _, err := bitmap.ReadFrom(bytes.NewReader(v)); err != nil {

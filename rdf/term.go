@@ -11,6 +11,7 @@ import (
 
 // Commonly used datatype URIs (and the ones used by this package internally):
 var (
+	RDFtype          = URI("http://www.w3.org/1999/02/22-rdf-syntax-ns#type")
 	RDFlangString    = URI("http://www.w3.org/1999/02/22-rdf-syntax-ns#langString")
 	XSDboolean       = URI("http://www.w3.org/2001/XMLSchema#boolean")
 	XSDbyte          = URI("http://www.w3.org/2001/XMLSchema#byte")

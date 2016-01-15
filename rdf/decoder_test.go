@@ -40,6 +40,11 @@ func TestDecode(t *testing.T) {
 				NewURI("http://example.org/p1"),
 				NewURI("http://example.org/o1"),
 			}}},
+		{"<s> a <Something> .", []Triple{
+			Triple{NewURI("s"),
+				RDFtype,
+				NewURI("Something"),
+			}}},
 	}
 
 	for _, test := range tests {
