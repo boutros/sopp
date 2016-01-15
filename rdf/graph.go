@@ -327,6 +327,7 @@ func (g *Graph) Merge(other *Graph) *Graph {
 
 // Dot returns a representation of the graph in graphviz' dot format.
 func (g *Graph) Dot(base string, focus []string) string {
+	// TODO This is getting messy - consider generating using text/template.
 	var b bytes.Buffer
 	b.WriteString("digraph \"")
 	b.WriteString(strings.Join(focus, "+"))
@@ -349,22 +350,52 @@ func (g *Graph) Dot(base string, focus []string) string {
 			}
 		}
 		if isFocus {
-			b.WriteString("\t<TR><TD BGCOLOR='#a0ffa0' COLSPAN='2'><FONT POINT-SIZE='12' FACE='monospace'>&lt;")
+			b.WriteString("\t<TR><TD ALIGN='RIGHT' BGCOLOR='#e0e0e0'>")
+			// Print class membership (rdf:type)
+			if _, ok := props[RDFtype]; ok {
+				b.WriteString("<FONT POINT-SIZE='10'>")
+				for i, term := range props[RDFtype] {
+					_, shortObj := split(term.String())
+					b.WriteString(shortObj)
+					if i+1 < len(props[RDFtype]) {
+						b.WriteString("<BR/>")
+					}
+				}
+				b.WriteString("</FONT>")
+			}
+			b.WriteString("</TD><TD ALIGN='LEFT' BGCOLOR='#a0ffa0'><FONT POINT-SIZE='12' FACE='monospace'>&lt;")
 			b.WriteString(strings.TrimPrefix(node.String(), base))
 			b.WriteString("&gt;</FONT></TD></TR>\n")
 		} else {
-			b.WriteString("\t<TR><TD HREF='/")
+			b.WriteString("\t<TR><TD ALIGN='RIGHT' BGCOLOR='#e0e0e0'>")
+			if _, ok := props[RDFtype]; ok {
+				b.WriteString("<FONT POINT-SIZE='10'>")
+				for i, term := range props[RDFtype] {
+					_, shortObj := split(term.String())
+					b.WriteString(shortObj)
+					if i+1 < len(props[RDFtype]) {
+						b.WriteString("<BR/>")
+					}
+				}
+				b.WriteString("</FONT>")
+			}
+			b.WriteString("</TD><TD ALIGN='LEFT' BGCOLOR='#e0e0e0' HREF='/")
 			b.WriteString(node.String())
 			b.WriteString("' TITLE='")
 			b.WriteString(node.String())
-			b.WriteString("' BGCOLOR='#e0e0e0' COLSPAN='2'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;")
+			b.WriteString("'><FONT COLOR='blue' POINT-SIZE='12' FACE='monospace'>&lt;")
 			b.WriteString(strings.TrimPrefix(node.String(), base))
 			b.WriteString("&gt;</FONT></TD>")
 			b.WriteString("<TD TITLE='add to graph' BGCOLOR='#e0e0e0' HREF='/")
 			b.WriteString(strings.Join(focus, "+/") + "+/" + node.String())
 			b.WriteString("'><FONT COLOR='blue'><B>+</B></FONT></TD></TR>\n")
 		}
+
 		for pred, terms := range props {
+			if pred == RDFtype {
+				// rdf:type triples allready handeled above
+				continue
+			}
 			_, shortPred := split(pred.String())
 			for _, term := range terms {
 				switch t := term.(type) {
