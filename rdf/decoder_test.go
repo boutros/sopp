@@ -66,4 +66,27 @@ func TestDecode(t *testing.T) {
 	}
 }
 
+func TestSkolemizeBnode(t *testing.T) {
+	input := `
+	_:a <p> "o" .
+	<s> <p> _:a ;
+    <p> <o> .`
+	dec := NewDecoder(bytes.NewBufferString(input))
+	dec.Skolemize = func(s string) URI { return NewURI("base/" + s) }
+	got, err := dec.DecodeGraph()
+	if err != nil {
+		t.Fatalf("decoding:\n%q\ngot error: ", input, err)
+	}
+	want := NewGraph()
+	want.Insert(
+		Triple{NewURI("s"), NewURI("p"), NewURI("o")},
+		Triple{NewURI("base/a"), NewURI("p"), NewLiteral("o")},
+		Triple{NewURI("s"), NewURI("p"), NewURI("base/a")},
+	)
+	if !got.Eq(want) {
+		t.Errorf("got:\n%v\nwant:\n%v", got.Triples(), want.Triples())
+	}
+	// TODO test if dec.Skolemize == nil
+}
+
 func TestDecodeErrors(t *testing.T) {}

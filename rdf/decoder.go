@@ -73,6 +73,9 @@ func (d *Decoder) parseSubject() (err error) {
 		return d.parseSubject()
 	case tokenURI:
 		d.tr.Subj = d.newURI(tok.Text)
+	case tokenBNode:
+		// TODO if d.Skolemize == nil
+		d.tr.Subj = d.Skolemize(tok.Text)
 	case tokenEOL:
 		if d.tr.Subj, err = d.parseURI(); err != nil {
 			return err
@@ -100,6 +103,9 @@ func (d *Decoder) parseURI() (uri URI, err error) {
 	switch tok.Type {
 	case tokenURI:
 		uri = d.newURI(tok.Text)
+	case tokenBNode:
+		// TODO if d.Skolemize == nil
+		uri = d.Skolemize(tok.Text)
 	case tokenEOL:
 		return d.parseURI()
 	case tokenEOF:
@@ -115,8 +121,10 @@ func (d *Decoder) parseObject() error {
 	tok := d.scanner.Scan()
 	switch tok.Type {
 	case tokenURI:
+		// TODO if d.Skolemize == nil
 		d.tr.Obj = d.newURI(tok.Text)
-		break
+	case tokenBNode:
+		d.tr.Obj = d.Skolemize(tok.Text)
 	case tokenLiteral:
 		next := d.scanner.Scan()
 		switch next.Type {
