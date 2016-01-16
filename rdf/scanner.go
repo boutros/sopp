@@ -178,6 +178,15 @@ runeSwitch:
 		s.pos++ // consume ^^
 		s.ignore()
 		tok = tokenTypeMarker
+	case '_':
+		if s.peek() != ':' {
+			s.Error = "unexpected token"
+			s.scanUntilNextToken()
+			break runeSwitch
+		}
+		s.scanUntilNextToken()
+		addStart = 2
+		tok = tokenBNode
 	case eof:
 		tok = tokenEOF
 	case utf8.RuneError:
@@ -244,7 +253,7 @@ func (s *scanner) scanUntilNextToken() {
 	for {
 		r := s.peek()
 		switch r {
-		case '<', '"', '.', ';', ',', '\n', ' ', eof, utf8.RuneError:
+		case '<', '"', '.', ';', ',', '\n', ' ', '_', eof, utf8.RuneError:
 			return
 		default:
 			s.next()

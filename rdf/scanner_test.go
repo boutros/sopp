@@ -77,6 +77,11 @@ func TestScanTokens(t *testing.T) {
 			{tokenURI, "s"},
 			{tokenURI, "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"},
 		}},
+		{"_:a <b> _:c .", []token{
+			{tokenBNode, "a"},
+			{tokenURI, "b"},
+			{tokenBNode, "c"},
+			{tokenDot, ""}}},
 	}
 
 	for _, test := range tests {
@@ -103,6 +108,7 @@ func TestScanErrors(t *testing.T) {
 		{`^a b`, "unexpected token", "^a"},
 		{`@ <a>`, "invalid language tag", ""},
 		{"abc", "unexpected token", "abc"},
+		{"_a", "unexpected token", "_a"},
 	}
 
 	for _, test := range tests {
