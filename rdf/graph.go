@@ -443,16 +443,64 @@ func (g *Graph) Dot(base string, focus []string) string {
 	return b.String()
 }
 
-/*
-
-type UpdateQuery struct {
-	insert    []Pattern
-	delete    []Pattern
-	where     []Pattern
+type Pattern struct {
+	Subj, Pred, Obj QVar
 }
 
-type ConstructQuery struct {
-	construct []Pattern
-	where     []Pattern
+type QVar interface {
+	validAsQVar()
 }
-*/
+
+type any struct{}
+
+func (a any) validAsQVar() {}
+
+var Any = any{}
+
+type matchPattern struct {
+	s, p, o bool
+}
+
+var keepTriple matchPattern = matchPattern{true, true, true}
+
+func (g *Graph) Construct(p Pattern) *Graph {
+	res := NewGraph()
+
+	for _, tr := range g.Triples() {
+		var m matchPattern
+
+		switch subj := p.Subj.(type) {
+		case URI:
+			if subj == tr.Subj {
+				m.s = true
+			}
+		case any:
+			m.s = true
+		}
+
+		switch pred := p.Pred.(type) {
+		case URI:
+			if pred == tr.Pred {
+				m.p = true
+			}
+		case any:
+			m.p = true
+		}
+
+		switch obj := p.Obj.(type) {
+		case Term:
+			if obj == tr.Obj {
+				m.o = true
+			}
+		case any:
+			m.o = true
+		}
+
+		if m == keepTriple {
+			res.Insert(tr)
+		}
+
+	}
+
+	return res
+}

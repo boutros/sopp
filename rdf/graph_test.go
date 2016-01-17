@@ -384,5 +384,61 @@ func TestGraphMerge(t *testing.T) {
 		t.Errorf("merging\n%s\nwith\n%s\ngot:\n%s\nwant:\n%s",
 			a, b, ga.Serialize(Turtle, ""), want)
 	}
+}
+
+func TestGraphConstruct(t *testing.T) {
+	input := `
+<s> <p> <x>, <y>, <z> .
+<x> <p2> "a" .
+<y> <p2> "b" .
+<z> <p> "a" .`
+
+	dec := NewDecoder(bytes.NewBufferString(input))
+	db, err := dec.DecodeGraph()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		p    Pattern
+		want string
+	}{
+		{
+			Pattern{Any, Any, Any},
+			input,
+		},
+		{
+			Pattern{URI("s"), URI("p"), URI("x")},
+			`<s> <p> <x> .`,
+		},
+		{
+			Pattern{URI("s"), URI("p"), Any},
+			`<s> <p> <x>, <y>, <z> .`,
+		},
+		{
+			Pattern{Any, Any, NewLiteral("a")},
+			`<x> <p2> "a" .
+			 <z> <p> "a" .`,
+		},
+		{
+			Pattern{Any, URI("p2"), Any},
+			`<x> <p2> "a" .
+			 <y> <p2> "b" .`,
+		},
+	}
+
+	for _, test := range tests {
+		dec := NewDecoder(bytes.NewBufferString(test.want))
+		want, err := dec.DecodeGraph()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		got := db.Construct(test.p)
+
+		if !got.Eq(want) {
+			t.Errorf("Construct(%v) =>\n%v\nwant:\n%v", test.p, got.Triples(), want.Triples())
+		}
+	}
 
 }

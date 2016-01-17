@@ -82,6 +82,8 @@ func (u URI) Resolve(base URI) URI {
 // validAsTerm satiesfies the Term interface for URI.
 func (u URI) validAsTerm() {}
 
+func (u URI) validAsQVar() {}
+
 // Literal represents a literal value node in a RDF graph. A Literal has
 // a value and a datatype. If the datatype is rdf:langString, it also
 // has a language tag.
@@ -273,6 +275,8 @@ func (l Literal) Lang() string {
 
 // validAsTerm satiesfies the Term interface for Literal.
 func (l Literal) validAsTerm() {}
+
+func (l Literal) validAsQVar() {}
 
 // NewLangLiteral returns a new, language-tagged Literal.
 func NewLangLiteral(v string, lang string) Literal {
