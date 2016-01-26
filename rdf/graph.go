@@ -93,6 +93,9 @@ func (g *Graph) Triples() []Triple {
 // Eq tests for equality between graphs, meaning that they contain
 // the same triples, and no graph has triples not in the other graph.
 func (g *Graph) Eq(other *Graph) bool {
+	if g == nil || other == nil {
+		return false
+	}
 	if len(g.nodes) != len(other.nodes) {
 		return false
 	}
