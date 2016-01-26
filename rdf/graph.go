@@ -232,7 +232,11 @@ func (g *Graph) Serialize(f Format, base string) string {
 
 				for i, term := range terms {
 					if i == 0 {
-						fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(pred), base))
+						if pred == RDFtype {
+							fmt.Fprintf(&b, "a ")
+						} else {
+							fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(pred), base))
+						}
 					}
 					switch t := term.(type) {
 					case URI:
