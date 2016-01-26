@@ -70,7 +70,7 @@ func TestScanTokens(t *testing.T) {
 			{tokenLiteral, "\"\\\r\n Здра́вствуйте\t☺"},
 			{tokenDot, ""}}},
 		{"@base <a> .", []token{
-			{tokenBase, ""},
+			{tokenBaseDirective, ""},
 			{tokenURI, "a"},
 			{tokenDot, ""}}},
 		{"<s> a ", []token{
@@ -82,6 +82,13 @@ func TestScanTokens(t *testing.T) {
 			{tokenURI, "b"},
 			{tokenBNode, "c"},
 			{tokenDot, ""}}},
+		{"@prefix pre: <a> .", []token{
+			{tokenPrefixDirective, ""},
+			{tokenPrefix, "pre"},
+			{tokenURI, "a"},
+			{tokenDot, ""}}},
+		{"xsd:string", []token{
+			{tokenURIshrinked, "xsd:string"}}},
 	}
 
 	for _, test := range tests {

@@ -16,9 +16,11 @@ const (
 	tokenEOL
 
 	// Turtle tokens
+	tokenPrefixDirective
 	tokenPrefix
-	tokenBase
+	tokenBaseDirective
 	tokenURI
+	tokenURIshrinked
 	tokenBNode
 	tokenLiteral
 	tokenLangTag
@@ -43,10 +45,14 @@ func (t tokenType) String() string {
 		return "EOF"
 	case tokenEOL:
 		return "EOL"
+	case tokenPrefixDirective:
+		return "Prefix directive"
 	case tokenPrefix:
 		return "Prefix"
-	case tokenBase:
-		return "Base"
+	case tokenURIshrinked:
+		return "URI (prefix:suffix shortform)"
+	case tokenBaseDirective:
+		return "Base directive"
 	case tokenBNode:
 		return "Blank Node"
 	case tokenURI:
@@ -163,10 +169,14 @@ runeSwitch:
 			s.Error = "invalid language tag"
 			break runeSwitch
 		}
-		if string(s.line[s.start:s.pos]) == "base" {
-			tok = tokenBase
+		switch string(s.line[s.start:s.pos]) {
+		case "base":
+			tok = tokenBaseDirective
 			s.ignore()
-		} else {
+		case "prefix":
+			tok = tokenPrefixDirective
+			s.ignore()
+		default:
 			tok = tokenLangTag
 		}
 	case '^':
@@ -192,8 +202,17 @@ runeSwitch:
 	case utf8.RuneError:
 		s.Error = "illegal UTF-8 encoding"
 	default:
-		s.Error = "unexpected token"
 		s.scanUntilNextToken()
+		if s.line[s.pos-1] == ':' {
+			tok = tokenPrefix
+			addEnd = -1
+			break
+		}
+		if i := bytes.Index(s.line[s.start:s.pos], []byte(":")); i != -1 {
+			tok = tokenURIshrinked
+			break
+		}
+		s.Error = "unexpected token"
 	}
 
 	if s.Error != "" {

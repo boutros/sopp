@@ -45,6 +45,12 @@ func TestDecode(t *testing.T) {
 				RDFtype,
 				NewURI("Something"),
 			}}},
+		{"@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n<s> <p> \"9912534\"^^xsd:long .", []Triple{
+			Triple{
+				NewURI("s"),
+				NewURI("p"),
+				NewLiteral(int64(9912534)),
+			}}},
 	}
 
 	for _, test := range tests {
