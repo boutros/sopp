@@ -31,17 +31,17 @@ type Triple struct {
 func (tr Triple) String() string {
 	switch obj := tr.Obj.(type) {
 	case URI:
-		return fmt.Sprintf("<%s> <%s> <%s> .", tr.Subj, tr.Pred, obj)
+		return fmt.Sprintf("<%s> <%s> <%s> .\n", tr.Subj, tr.Pred, obj)
 	case Literal:
 		switch obj.DataType() {
 		case XSDstring:
-			return fmt.Sprintf("<%s> <%s> %q .", tr.Subj, tr.Pred, obj.value)
+			return fmt.Sprintf("<%s> <%s> %q .\n", tr.Subj, tr.Pred, obj.value)
 		case RDFlangString:
-			return fmt.Sprintf("<%s> <%s> %q@%s .", tr.Subj, tr.Pred, obj.value, obj.language)
+			return fmt.Sprintf("<%s> <%s> %q@%s .\n", tr.Subj, tr.Pred, obj.value, obj.language)
 		case XSDboolean:
-			return fmt.Sprintf("<%s> <%s> %s .", tr.Subj, tr.Pred, obj.value)
+			return fmt.Sprintf("<%s> <%s> %s .\n", tr.Subj, tr.Pred, obj.value)
 		default:
-			return fmt.Sprintf("<%s> <%s> %q^^<%s> .", tr.Subj, tr.Pred, obj.value, obj.datatype)
+			return fmt.Sprintf("<%s> <%s> %q^^<%s> .\n", tr.Subj, tr.Pred, obj.value, obj.datatype)
 		}
 	}
 	panic("unreachable")
