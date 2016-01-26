@@ -247,6 +247,8 @@ func (g *Graph) Serialize(f Format, base string) string {
 							fmt.Fprintf(&b, "%q@%s", t.String(), t.Lang())
 						case XSDstring:
 							fmt.Fprintf(&b, "%q", t.String())
+						case XSDboolean:
+							fmt.Fprint(&b, t.String())
 						default:
 							fmt.Fprintf(&b, "%q^^<%s>", t.String(), strings.TrimPrefix(string(t.DataType()), base))
 						}

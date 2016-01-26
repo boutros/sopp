@@ -51,6 +51,9 @@ func TestDecode(t *testing.T) {
 				NewURI("p"),
 				NewLiteral(int64(9912534)),
 			}}},
+		{"<s> <p> true .\n <s2> <p2> false .", []Triple{
+			Triple{NewURI("s"), NewURI("p"), NewLiteral(true)},
+			Triple{NewURI("s2"), NewURI("p2"), NewLiteral(false)}}},
 	}
 
 	for _, test := range tests {

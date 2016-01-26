@@ -28,6 +28,8 @@ const (
 	tokenComma
 	tokenSemicolon
 	tokenDot
+	tokenTrue
+	tokenFalse
 )
 
 const eof = rune(-1)
@@ -69,6 +71,10 @@ func (t tokenType) String() string {
 		return "Semicolon"
 	case tokenDot:
 		return "Dot"
+	case tokenTrue:
+		return "true"
+	case tokenFalse:
+		return "false"
 	default:
 		return "token String() TODO"
 	}
@@ -210,6 +216,14 @@ runeSwitch:
 		}
 		if i := bytes.Index(s.line[s.start:s.pos], []byte(":")); i != -1 {
 			tok = tokenURIshrinked
+			break
+		}
+		if bytes.Equal(s.line[s.start:s.pos], []byte("true")) {
+			tok = tokenTrue
+			break
+		}
+		if bytes.Equal(s.line[s.start:s.pos], []byte("false")) {
+			tok = tokenFalse
 			break
 		}
 		s.Error = "unexpected token"

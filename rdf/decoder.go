@@ -127,6 +127,8 @@ storePred:
 		goto storeObjBNode
 	case tokenLiteral:
 		goto storeObjLiteral
+	case tokenTrue, tokenFalse:
+		goto storeObjBool
 	default:
 		return d.errorExpected("URI|Literal", tok)
 	}
@@ -144,6 +146,10 @@ storeObjURI:
 	} else { // tok.Type == tokenURI
 		d.tr.Obj = d.resolveURI(tok.Text)
 	}
+	goto scanTripleTermination
+
+storeObjBool:
+	d.tr.Obj = Literal{value: tok.Text, datatype: XSDboolean}
 	goto scanTripleTermination
 
 storeObjLiteral:

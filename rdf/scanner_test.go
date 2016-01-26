@@ -89,6 +89,8 @@ func TestScanTokens(t *testing.T) {
 			{tokenDot, ""}}},
 		{"xsd:string", []token{
 			{tokenURIshrinked, "xsd:string"}}},
+		{"true false", []token{
+			{tokenTrue, "true"}, {tokenFalse, "false"}}},
 	}
 
 	for _, test := range tests {
