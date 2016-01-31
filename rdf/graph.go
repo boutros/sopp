@@ -257,9 +257,17 @@ func (g *Graph) SerializeWithPrefixes(base string, prefixes *PrefixMap) string {
 
 	for subj, props := range g.nodes {
 		fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(subj), base))
-		p := 0
-		for pred, terms := range props {
-			if p > 0 {
+		c := 0
+		preds := make(terms, len(props))
+		for p, _ := range props {
+			preds[c] = p
+			c++
+		}
+		c = 0
+		sort.Sort(preds)
+		for _, pred := range preds {
+			terms := props[pred.(URI)]
+			if c > 0 {
 				b.WriteString(" ;\n\t")
 			}
 
@@ -268,11 +276,11 @@ func (g *Graph) SerializeWithPrefixes(base string, prefixes *PrefixMap) string {
 					if pred == RDFtype {
 						fmt.Fprintf(&b, "a ")
 					} else {
-						if u := prefixes.Shrink(pred); u[1:len(u)-1] != string(pred) {
+						if u := prefixes.Shrink(pred.(URI)); u[1:len(u)-1] != string(pred.(URI)) {
 							fmt.Fprint(&b, u)
 							fmt.Fprint(&b, " ")
 						} else {
-							fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(pred), base))
+							fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(pred.(URI)), base))
 						}
 					}
 				}
@@ -300,8 +308,9 @@ func (g *Graph) SerializeWithPrefixes(base string, prefixes *PrefixMap) string {
 					b.WriteString(", ")
 				}
 			}
-			p++
+			c++
 		}
+
 		b.WriteString(" .\n")
 	}
 	return b.String()
