@@ -1,6 +1,7 @@
 package rdf
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"unicode/utf8"
@@ -19,6 +20,19 @@ func NewPrefixMap() *PrefixMap {
 		Base:  URI(""),
 	}
 }
+
+func (p *PrefixMap) Directives() string {
+	var b bytes.Buffer
+	for prefix, uri := range p.p2uri {
+		b.WriteString("@prefix ")
+		b.WriteString(prefix)
+		b.WriteString(": <")
+		b.WriteString(string(uri))
+		b.WriteString(">\n")
+	}
+	return b.String()
+}
+
 func (p *PrefixMap) Set(prefix string, u URI) {
 	p.p2uri[prefix] = u
 	p.uri2p[u] = prefix

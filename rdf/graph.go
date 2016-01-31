@@ -219,49 +219,7 @@ func (g *Graph) Serialize(f Format, base string) string {
 	var b bytes.Buffer
 
 	if f == Turtle {
-		if base != "" {
-			fmt.Fprintf(&b, "@base <%s> .\n", base)
-		}
-		for subj, props := range g.nodes {
-			fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(subj), base))
-			p := 0
-			for pred, terms := range props {
-				if p > 0 {
-					b.WriteString(" ;\n\t")
-				}
-
-				for i, term := range terms {
-					if i == 0 {
-						if pred == RDFtype {
-							fmt.Fprintf(&b, "a ")
-						} else {
-							fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(pred), base))
-						}
-					}
-					switch t := term.(type) {
-					case URI:
-						fmt.Fprintf(&b, "<%s>", strings.TrimPrefix(string(t), base))
-					case Literal:
-						switch t.DataType() {
-						case RDFlangString:
-							fmt.Fprintf(&b, "%q@%s", t.String(), t.Lang())
-						case XSDstring:
-							fmt.Fprintf(&b, "%q", t.String())
-						case XSDboolean:
-							fmt.Fprint(&b, t.String())
-						default:
-							fmt.Fprintf(&b, "%q^^<%s>", t.String(), strings.TrimPrefix(string(t.DataType()), base))
-						}
-					}
-					if i+1 < len(terms) {
-						b.WriteString(", ")
-					}
-				}
-				p++
-			}
-			b.WriteString(" .\n")
-		}
-		return b.String()
+		g.SerializeWithPrefixes(base, NewPrefixMap())
 	}
 
 	for subj, props := range g.nodes {
@@ -286,6 +244,68 @@ func (g *Graph) Serialize(f Format, base string) string {
 	}
 
 	return b.String()
+}
+
+func (g *Graph) SerializeWithPrefixes(base string, prefixes *PrefixMap) string {
+	var b bytes.Buffer
+
+	if base != "" {
+		fmt.Fprintf(&b, "@base <%s> .\n", base)
+	}
+	fmt.Fprint(&b, prefixes.Directives())
+	fmt.Fprintln(&b)
+
+	for subj, props := range g.nodes {
+		fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(subj), base))
+		p := 0
+		for pred, terms := range props {
+			if p > 0 {
+				b.WriteString(" ;\n\t")
+			}
+
+			for i, term := range terms {
+				if i == 0 {
+					if pred == RDFtype {
+						fmt.Fprintf(&b, "a ")
+					} else {
+						if u := prefixes.Shrink(pred); u[1:len(u)-1] != string(pred) {
+							fmt.Fprint(&b, u)
+							fmt.Fprint(&b, " ")
+						} else {
+							fmt.Fprintf(&b, "<%s> ", strings.TrimPrefix(string(pred), base))
+						}
+					}
+				}
+				switch t := term.(type) {
+				case URI:
+					if u := prefixes.Shrink(t); u[1:len(u)-1] != string(t) {
+						fmt.Fprint(&b, u)
+						fmt.Fprint(&b, " ")
+					} else {
+						fmt.Fprintf(&b, "<%s>", strings.TrimPrefix(string(t), base))
+					}
+				case Literal:
+					switch t.DataType() {
+					case RDFlangString:
+						fmt.Fprintf(&b, "%q@%s", t.String(), t.Lang())
+					case XSDstring:
+						fmt.Fprintf(&b, "%q", t.String())
+					case XSDboolean:
+						fmt.Fprint(&b, t.String())
+					default:
+						fmt.Fprintf(&b, "%q^^<%s>", t.String(), strings.TrimPrefix(string(t.DataType()), base))
+					}
+				}
+				if i+1 < len(terms) {
+					b.WriteString(", ")
+				}
+			}
+			p++
+		}
+		b.WriteString(" .\n")
+	}
+	return b.String()
+
 }
 
 // Describe returns a graph with all the triples where the given node
