@@ -10,9 +10,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/boltdb/bolt"
 	"github.com/boutros/sopp/rdf"
-	"github.com/tgruben/roaring"
 )
 
 // Exported errors
@@ -137,7 +137,7 @@ func (db *DB) setup() (*DB, error) {
 			var n uint64
 			for k, v := cur.First(); k != nil; k, v = cur.Next() {
 				if v != nil {
-					bitmap := roaring.NewRoaringBitmap()
+					bitmap := roaring.NewBitmap()
 					_, err := bitmap.ReadFrom(bytes.NewReader(v))
 					if err != nil {
 						return err
@@ -232,7 +232,7 @@ func (db *DB) Has(tr rdf.Triple) (exists bool, err error) {
 		copy(sp, u32tob(sID))
 		copy(sp[4:], u32tob(pID))
 
-		bitmap := roaring.NewRoaringBitmap()
+		bitmap := roaring.NewBitmap()
 		bo := bkt.Get(sp)
 		if bo == nil {
 			return nil
@@ -280,7 +280,7 @@ func (db *DB) Describe(node rdf.URI, asObject bool) (*rdf.Graph, error) {
 				if err != nil {
 					return err
 				}
-				bitmap := roaring.NewRoaringBitmap()
+				bitmap := roaring.NewBitmap()
 				_, err = bitmap.ReadFrom(bytes.NewReader(v))
 				if err != nil {
 					return err
@@ -323,7 +323,7 @@ func (db *DB) Describe(node rdf.URI, asObject bool) (*rdf.Graph, error) {
 				if err != nil {
 					return err
 				}
-				bitmap := roaring.NewRoaringBitmap()
+				bitmap := roaring.NewBitmap()
 				_, err = bitmap.ReadFrom(bytes.NewReader(v))
 				if err != nil {
 					return err
@@ -471,7 +471,7 @@ func (db *DB) Dump(to io.Writer) error {
 				w.WriteString("> ")
 			}
 
-			bitmap := roaring.NewRoaringBitmap()
+			bitmap := roaring.NewBitmap()
 			if _, err := bitmap.ReadFrom(bytes.NewReader(v)); err != nil {
 				return err
 			}
@@ -539,7 +539,7 @@ func (db *DB) forEach(fn func(rdf.Triple) error) error {
 			}
 			tr.Pred = term.(rdf.URI)
 
-			bitmap := roaring.NewRoaringBitmap()
+			bitmap := roaring.NewBitmap()
 			if _, err := bitmap.ReadFrom(bytes.NewReader(v)); err != nil {
 				return err
 			}
@@ -616,7 +616,7 @@ func (db *DB) storeTriple(tx *bolt.Tx, s, p, o uint32) error {
 		bkt := tx.Bucket(i.bk)
 		copy(key, u32tob(i.k1))
 		copy(key[4:], u32tob(i.k2))
-		bitmap := roaring.NewRoaringBitmap()
+		bitmap := roaring.NewBitmap()
 
 		bo := bkt.Get(key)
 		if bo != nil {
@@ -676,7 +676,7 @@ func (db *DB) removeTriple(tx *bolt.Tx, s, p, o uint32) error {
 			return ErrNotFound
 		}
 
-		bitmap := roaring.NewRoaringBitmap()
+		bitmap := roaring.NewBitmap()
 		_, err := bitmap.ReadFrom(bytes.NewReader(bo))
 		if err != nil {
 			return err
